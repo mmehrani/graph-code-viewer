@@ -49,9 +49,6 @@
   .msg.err  { background: var(--err-bg);  color: var(--err-ink); }
   .msg.ok   { background: var(--ok-bg);   color: var(--ok-ink); }
   .msg.info { background: #eef3fb; color: #1f3a66; }
-  .drop { border: 2px dashed var(--line); border-radius: 8px; padding: 10px; text-align: center;
-    color: var(--muted); font-size: 12.5px; margin-top: 8px; }
-  .drop.over { border-color: var(--accent); background: #eef3fb; }
   #dsStatus { font-size: 12.5px; }
   #dsStatus ul { margin: 4px 0 0; padding-left: 18px; }
   code, .mono { font-family: var(--mono); }
@@ -158,8 +155,7 @@
         return far fewer results than the hint announces.</li>
     <li>Line numbers on the result cards are lines of these demo files. The line of each sample in
         the full dataset is in <a href="demo_manifest.json">demo_manifest.json</a>.</li>
-    <li>The complete dataset will be released with the paper. If you already have a copy, press
-        <i>Open dataset folder…</i> below and the viewer will use it instead.</li>
+    <li>The complete dataset will be released with the paper.</li>
   </ul>
 </div>
 
@@ -237,12 +233,15 @@
   </p>
 
   <div class="callout">
-    <b>Your turn.</b> In the search panel (on the left, or just above on a narrow screen), pick a code family — CSS codes live on bipartite graphs,
-    general stabilizer codes on arbitrary connected ones — then choose a graph with <b>n</b> vertices
-    (= qubits), and narrow the search with the number of logical qubits <b>k</b>, the distance <b>d</b>,
-    degeneracy, and the check-matrix row / column weights. Leave a field blank to mean <i>any</i>.
-    Press <b>Search</b>, and step through the matches with ← / →. If you already have a particular graph
-    in mind, switch to <i>By g6 string</i> and paste its graph6 code.
+    <b>Your turn.</b> The page opens on the <span class="eq">[[5, 1, 3]]</span> code — the smallest
+    stabilizer code that corrects an arbitrary single-qubit error — as the 5-cycle graph, with its
+    single logical <span class="eq">X̄ = Z₁Z₂Z₃Z₄Z₅</span>. To look at anything else, use the search
+    panel (on the left, or just above on a narrow screen): pick a code family — CSS codes live on
+    bipartite graphs, general stabilizer codes on arbitrary connected ones — then choose a graph with
+    <b>n</b> vertices (= qubits), and narrow the search with the number of logical qubits <b>k</b>, the
+    distance <b>d</b>, degeneracy, and the check-matrix row / column weights. Leave a field blank to
+    mean <i>any</i>. Press <b>Search</b>, and step through the matches with ← / →. If you already have
+    a particular graph in mind, switch to <i>By g6 string</i> and paste its graph6 code.
   </div>
 
 </div>
@@ -257,23 +256,12 @@
       <button data-v="general">General stabilizer</button>
     </div>
     <div class="note" id="familyNote"></div>
-  </fieldset>
-
-  <fieldset>
-    <legend>2 · Dataset files</legend>
-    <div id="dsStatus" class="note">No dataset opened yet.</div>
-    <div class="stack">
-      <button id="btnFolder">Open dataset folder…</button>
-      <button id="btnFile">Open a single dataset file…</button>
-    </div>
-    <div class="drop" id="drop">…or drop the folder / a <code>.gz</code> file here</div>
-    <input type="file" id="inFolder" webkitdirectory directory multiple hidden>
-    <input type="file" id="inFile" hidden>
+    <div id="dsStatus" class="note">Loading the dataset…</div>
     <div id="dsMsg"></div>
   </fieldset>
 
   <fieldset>
-    <legend>3 · What to look for</legend>
+    <legend>2 · What to look for</legend>
     <div class="seg" id="modeSeg">
       <button data-v="params" class="on">Search by parameters</button>
       <button data-v="g6">By g6 string</button>
@@ -304,7 +292,7 @@
     <div id="lookoutMsg"></div>
     <div id="searchMsg"></div>
   </fieldset>
-  <div class="note">Tip: ← / → keys step through matches. Scanning a multi-GB file can take minutes — the progress bar shows where it is; keep the page open.</div>
+  <div class="note">Tip: ← / → keys step through the matches. <i>Next distinct graph</i> and <i>Next LC class</i> skip ahead to a genuinely different code; the progress bar above the card shows how far into the file the scan has got.</div>
 </aside>
 
 <main>
@@ -335,7 +323,7 @@
     <span class="pos" id="navTotal"></span>
   </div>
 
-  <div id="result"><div class="empty">Choose a code family, open the dataset folder, set the parameters and press <b>Search</b>.</div></div>
+  <div id="result"><div class="empty">Loading the [[5, 1, 3]] code…</div></div>
 </main>
 </div>
 
@@ -518,7 +506,6 @@ async function openLines(src) {
 /* ================================================== dataset index */
 // entry = {family, n, name, size, path, open: async () => ({size, stream: async () => ReadableStream})}
 const index = { entries: new Map(), label: '' };
-const NAME_RE = /^graphs(\d+)(CSS|LDPC)(_lc_class_included)?\.(gz|txt)$/i;
 function entryKey(family, n) { return family + ':' + n; }
 function addEntry(e) {
   const key = entryKey(e.family, e.n);
@@ -528,32 +515,14 @@ function addEntry(e) {
   if (prev && (prev.hasLc ? 1 : 0) === (e.hasLc ? 1 : 0) && prev.isGz && !e.isGz) return;
   index.entries.set(key, e);
 }
-function classifyName(name) {
-  const m = NAME_RE.exec(name); if (!m) return null;
-  return { n: +m[1], family: m[2].toUpperCase() === 'CSS' ? 'css' : 'general', hasLc: !!m[3], isGz: m[4].toLowerCase() === 'gz' };
-}
-function fileEntry(file, path) {
-  const c = classifyName(file.name);
-  return { ...(c || { n: null, family: null, hasLc: /_lc_class_included\./i.test(file.name), isGz: /\.gz$/i.test(file.name) }), name: file.name, path: path || file.name, size: file.size,
-    open: async () => ({ size: file.size, stream: async () => file.stream() }) };
-}
-async function sniffEntry(e) {  // fill n / family from the first record when the file name is not standard
-  const src = await e.open();
-  const lr = await openLines(src);
-  const line = await lr.next(); await lr.cancel();
-  if (line == null || !line.trim().length) throw new Error(e.name + ' is empty');
-  const rec = parseRecord(line.trim());
-  e.n = rec.n; e.family = rec.family; e.isGz = lr.isGz;
-  return e;
-}
 
 function refreshDatasetStatus() {
   const byFam = { css: [], general: [] };
   for (const e of index.entries.values()) byFam[e.family].push(e.n);
   const html = [];
   if (index.label) html.push(`<div><b>${esc(index.label)}</b></div>`);
-  if (!index.entries.size) { $('dsStatus').innerHTML = 'No dataset files found.'; }
-  else {
+  if (!index.entries.size) { $('dsStatus').innerHTML = 'No dataset files found.'; fillNSelect(); return; }
+  {
     const li = f => byFam[f].length ? byFam[f].sort((a,b)=>a-b).map(n => { const e = index.entries.get(entryKey(f,n)); return `<span title="${esc(e.path)} (${fmtBytes(e.size)})">${n}</span>`; }).join(', ') : '<i>none</i>';
     html.push(`<ul><li>CSS: n = ${li('css')}</li><li>General: n = ${li('general')}</li></ul>`);
     $('dsStatus').innerHTML = html.join('');
@@ -563,7 +532,7 @@ function refreshDatasetStatus() {
 function fillNSelect() {
   const sel = $('fN'); const fam = state.family; const cur = sel.value;
   const ns = [...index.entries.values()].filter(e => e.family === fam).map(e => e.n).sort((a,b)=>a-b);
-  sel.innerHTML = ns.length ? ns.map(n => `<option value="${n}">${n}</option>`).join('') : '<option value="">(open the dataset first)</option>';
+  sel.innerHTML = ns.length ? ns.map(n => `<option value="${n}">${n}</option>`).join('') : '<option value="">(no dataset)</option>';
   if (ns.includes(+cur)) sel.value = cur;
   updateLookoutHint();
 }
@@ -589,39 +558,6 @@ async function probeHttp() {
     }
   }));
   index.label = 'served from ' + location.origin;
-}
-
-// --- source: File System Access API directory handle (Chrome / Edge)
-async function indexDirHandle(dir, prefix = '', depth = 0) {
-  for await (const [name, h] of dir.entries()) {
-    if (h.kind === 'file') {
-      if (classifyName(name)) {
-        const f = await h.getFile();
-        addEntry(fileEntry(f, prefix + name));
-      }
-    } else if (depth < 3 && !name.startsWith('.')) await indexDirHandle(h, prefix + name + '/', depth + 1);
-  }
-}
-// --- source: FileList (webkitdirectory input)
-function indexFileList(files) {
-  for (const f of files) if (classifyName(f.name)) addEntry(fileEntry(f, f.webkitRelativePath || f.name));
-}
-// --- source: drag & drop entries
-function readAllEntries(reader) {
-  return new Promise((res, rej) => { const out = []; (function more() { reader.readEntries(es => { if (!es.length) res(out); else { out.push(...es); more(); } }, rej); })(); });
-}
-async function indexDropEntry(entry, depth = 0) {
-  if (entry.isFile) {
-    if (classifyName(entry.name) || depth === 0) {
-      const f = await new Promise((res, rej) => entry.file(res, rej));
-      const e = fileEntry(f, entry.fullPath.replace(/^\//, ''));
-      if (!e.family) { try { await sniffEntry(e); } catch (err) { throw new Error(`${f.name}: ${err.message}`); } }
-      addEntry(e);
-    }
-  } else if (entry.isDirectory && depth < 4) {
-    const es = await readAllEntries(entry.createReader());
-    for (const c of es) await indexDropEntry(c, depth + 1);
-  }
 }
 
 /* ===================================================== lookout hints */
@@ -1039,62 +975,7 @@ familyNote();
 ['fK','fD','fDeg','fN'].forEach(id => $(id).addEventListener('input', updateLookoutHint));
 ['fRow','fCol'].forEach(id => $(id).addEventListener('input', updateLookoutHint));
 
-// dataset opening
-$('btnFolder').onclick = async () => {
-  setMsg($('dsMsg'), '', '');
-  if (window.showDirectoryPicker) {
-    try {
-      const dir = await window.showDirectoryPicker({ mode: 'read' });
-      index.entries.clear(); index.label = 'folder: ' + dir.name;
-      await indexDirHandle(dir); refreshDatasetStatus();
-      if (!index.entries.size) setMsg($('dsMsg'), 'warn', 'No files named like <code>graphs9LDPC.gz</code> / <code>graphs12CSS.gz</code> were found in that folder (searched 3 levels deep).');
-      return;
-    } catch (e) { if (e && e.name === 'AbortError') return; /* fall through to the classic picker */ }
-  }
-  $('inFolder').click();
-};
-$('inFolder').addEventListener('change', ev => {
-  const files = ev.target.files; if (!files.length) return;
-  index.entries.clear(); index.label = 'folder: ' + (files[0].webkitRelativePath.split('/')[0] || '(selected)');
-  indexFileList(files); refreshDatasetStatus();
-  if (!index.entries.size) setMsg($('dsMsg'), 'warn', 'No files named like <code>graphs9LDPC.gz</code> / <code>graphs12CSS.gz</code> were found in that folder.');
-  ev.target.value = '';
-});
-$('btnFile').onclick = () => $('inFile').click();
-$('inFile').addEventListener('change', async ev => {
-  const f = ev.target.files[0]; if (!f) return; ev.target.value = '';
-  await addSingleFile(f);
-});
-async function addSingleFile(f) {
-  setMsg($('dsMsg'), '', '');
-  const e = fileEntry(f);
-  try { if (!e.family) await sniffEntry(e); }
-  catch (err) { setMsg($('dsMsg'), 'err', `Could not read <code>${esc(f.name)}</code>: ${esc(err.message)}`); return; }
-  if (!index.label) index.label = 'individual files';
-  addEntry(e); refreshDatasetStatus();
-  const b = $('familySeg').querySelector(`button[data-v="${e.family}"]`); if (b) b.click();
-  $('fN').value = String(e.n);
-  setMsg($('dsMsg'), 'ok', `Added <code>${esc(f.name)}</code>: ${e.family === 'css' ? 'CSS' : 'general'} codes, n = ${e.n}, ${fmtBytes(f.size)}${e.isGz ? ' (gzip)' : ''}.`);
-}
-// drag & drop
-const drop = $('drop');
-['dragenter','dragover'].forEach(t => document.addEventListener(t, ev => { ev.preventDefault(); drop.classList.add('over'); }));
-['dragleave','drop'].forEach(t => document.addEventListener(t, ev => { ev.preventDefault(); drop.classList.remove('over'); }));
-document.addEventListener('drop', async ev => {
-  const items = [...(ev.dataTransfer.items || [])];
-  const entries = items.map(it => it.webkitGetAsEntry ? it.webkitGetAsEntry() : null).filter(Boolean);
-  setMsg($('dsMsg'), '', '');
-  try {
-    if (entries.length) {
-      if (entries.some(e => e.isDirectory)) { index.entries.clear(); index.label = 'folder: ' + entries.find(e => e.isDirectory).name; }
-      else if (!index.label) index.label = 'individual files';
-      for (const e of entries) await indexDropEntry(e);
-      refreshDatasetStatus();
-      if (!index.entries.size) setMsg($('dsMsg'), 'warn', 'Nothing usable was found in what you dropped.');
-    } else if (ev.dataTransfer.files.length) { for (const f of ev.dataTransfer.files) await addSingleFile(f); }
-  } catch (err) { setMsg($('dsMsg'), 'err', esc(err.message)); }
-});
-
+// The sample dataset is served next to this page and indexed automatically at startup (probeHttp).
 // progress
 function showProgress(session, title) {
   $('progress').hidden = false; $('progTitle').textContent = title;
@@ -1113,7 +994,7 @@ function updateProgress(session) {
   $('pHint').textContent = session.busy ? 'Scanning — keep this page open.' : (session.eof ? 'Reached end of file.' : (session.stopped ? 'Stopped.' : 'Paused at this line; Next resumes from here.'));
 }
 function setBusy(b) {
-  ['btnPrev','btnNext','btnNextGraph','btnPrevClass','btnNextClass','btnCount','btnSearch','btnFolder','btnFile'].forEach(id => $(id).disabled = b);
+  ['btnPrev','btnNext','btnNextGraph','btnPrevClass','btnNextClass','btnCount','btnSearch'].forEach(id => $(id).disabled = b);
   $('btnStop').hidden = !b;
   if (!b) updateNav();
 }
@@ -1149,14 +1030,14 @@ async function startSearch(force) {
     desc = `graph ${g6} (n = ${n}) in the ${family === 'css' ? 'CSS' : 'general'} dataset`;
     if (!entry) {
       // no dataset for this n: still draw the bare graph
-      setMsg($('searchMsg'), 'warn', `No ${family === 'css' ? 'CSS' : 'general'} dataset file for n = ${n} is open, so the code cannot be looked up — showing the bare graph only.`);
+      setMsg($('searchMsg'), 'warn', `This page carries no ${family === 'css' ? 'CSS' : 'general stabilizer'} file for n = ${n}, so the code cannot be looked up — showing the bare graph only.`);
       state.session = null; updateNav(); $('progress').hidden = true;
       renderBareGraph(g6); return;
     }
   } else {
     n = +$('fN').value;
     entry = index.entries.get(entryKey(family, n));
-    if (!entry) { setMsg($('searchMsg'), 'err', 'Open the dataset folder (or the file for this n) first.'); return; }
+    if (!entry) { setMsg($('searchMsg'), 'err', `This page carries no ${family === 'css' ? 'CSS' : 'general stabilizer'} file for n = ${n}.`); return; }
     const f = readFilters();
     const cmp = (mode, want, have) => want == null || (mode === 'eq' ? have === want : have <= want);
     test = q => (f.k == null || q.k === f.k) && (f.d == null || q.d === f.d) && (f.deg == null || q.deg === f.deg)
@@ -1176,7 +1057,7 @@ async function startSearch(force) {
   $('result').innerHTML = `<div class="empty">Scanning <code>${esc(entry.name)}</code> (${fmtBytes(entry.size)}${entry.isGz ? ', gzip' : ''}) for ${esc(desc)}…</div>`;
   setBusy(true);
   try { await session.open(); }
-  catch (e) { setBusy(false); setMsg($('searchMsg'), 'err', 'Could not open the file: ' + esc(e.message) + (index.label.startsWith('folder') ? '<br>If the file lives in OneDrive / iCloud, make sure it is downloaded locally.' : '')); state.session = null; $('result').innerHTML = ''; return; }
+  catch (e) { setBusy(false); setMsg($('searchMsg'), 'err', 'Could not open the file: ' + esc(e.message)); state.session = null; $('result').innerHTML = ''; return; }
   showProgress(session, `Scanning ${entry.name} — ${desc}`);
   await advance(session, null, false);
 }
@@ -1248,15 +1129,38 @@ document.addEventListener('keydown', ev => {
   if (ev.key === 'ArrowLeft') $('btnPrev').click(); else if (ev.key === 'ArrowRight') $('btnNext').click();
 });
 
-// startup
+// startup: index the dataset served next to this page, then open on a familiar code
+function selectFamily(v) {
+  state.family = v;
+  $('familySeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  familyNote(); fillNSelect();
+}
+async function showOpeningExample() {   // the [[5, 1, 3]] perfect code: general stabilizer, n = 5, k = 1, d = 3
+  if (!index.entries.get(entryKey('general', 5))) return false;
+  selectFamily('general');
+  $('fN').value = '5'; $('fK').value = '1'; $('fD').value = '3'; $('fDeg').value = 'any';
+  $('fRow').value = ''; $('fCol').value = '';
+  updateLookoutHint();
+  await startSearch(false);
+  return true;
+}
 (async () => {
-  if (!hasStreamSupport()) setMsg($('dsMsg'), 'err', 'This browser lacks streaming gzip support (DecompressionStream). Use a current Chrome, Edge, Firefox ≥ 113 or Safari ≥ 16.4.');
+  if (!hasStreamSupport()) { setMsg($('dsMsg'), 'err', 'This browser lacks streaming gzip support (DecompressionStream). Use a current Chrome, Edge, Firefox ≥ 113 or Safari ≥ 16.4.'); return; }
   if (location.protocol.startsWith('http')) {
-    $('dsStatus').textContent = 'Looking for dataset files next to this page…';
+    $('dsStatus').textContent = 'Loading the dataset served with this page…';
     await probeHttp(); refreshDatasetStatus();
-    if (index.entries.size) setMsg($('dsMsg'), 'ok', 'Dataset files were found automatically next to this page.');
-    else $('dsStatus').textContent = 'No dataset files found next to this page — open the folder manually.';
-  } else fillNSelect();
+    if (!index.entries.size) {
+      $('dsStatus').textContent = 'No dataset files were found next to this page.';
+      setMsg($('dsMsg'), 'err', 'The dataset files that ship with this page could not be loaded.');
+      $('result').innerHTML = '';
+      return;
+    }
+    if (!await showOpeningExample()) $('result').innerHTML = '<div class="empty">Set the parameters and press <b>Search</b>.</div>';
+  } else {
+    fillNSelect();
+    $('dsStatus').textContent = 'Opened from a file:// URL — serve this folder over HTTP to load the dataset.';
+    $('result').innerHTML = '<div class="empty">The dataset cannot be fetched from a <code>file://</code> URL. Serve this folder over HTTP.</div>';
+  }
 })();
 </script>
 <footer id="refs">

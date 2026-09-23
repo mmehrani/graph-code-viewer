@@ -30,9 +30,13 @@ and the line it occupies in the corresponding file of the full dataset.
 
 ## Using it
 
-Open the link above; the sample dataset loads by itself. Then pick the code family, set n and
+Open the link above. The sample dataset loads by itself and the page starts on the [[5, 1, 3]]
+code — the 5-cycle graph — so there is nothing to set up. Then pick the code family, set n and
 any of k, d, degeneracy and the check-matrix row/column weight limits (blank = any), and press
 **Search** — or paste a graph6 string to look a specific graph up.
+
+A section at the top explains what a graph state is, what the CWS form of a stabilizer code is,
+and why each card is a logical basis of the codespace; the references are at the bottom of the page.
 
 Each result card shows the graph with labelled vertices, one copy per logical operator with
 the qubits it acts on filled in, the stabilizer generators as a table and as Pauli strings,
@@ -40,9 +44,8 @@ the logical X and Z operators, the row/column weights, the number of correctable
 LC class of the graph state. Vertices can be dragged, the layout switched between
 spring / circle / bipartite, and the drawing downloaded as SVG.
 
-**If you have the full dataset**, press *Open dataset folder…* in the left panel and choose
-your copy — the viewer reads the `graphsNCSS*.gz` / `graphsNLDPC*.gz` files directly and
-everything stays in your browser. It never uploads anything.
+The viewer reads the `graphsNCSS*.gz` / `graphsNLDPC*.gz` files served next to the page and
+streams them in the browser; nothing is ever uploaded.
 
 ### A note on the counts
 
