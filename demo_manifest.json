@@ -1,0 +1,404 @@
+{
+ "note": "Trial subset of the graph-code dataset: at most two sample codes per (family, n, k, d, degeneracy) category. Not the complete dataset.",
+ "excluded": "general stabilizer n = 9, CSS n = 12 and n = 13 (2.5 GB, 30 MB and 1.7 GB)",
+ "built": "2026-09-23",
+ "categories": 21,
+ "codes": 41,
+ "line_in_full_dataset": "line number of the sample in the corresponding graphsN*_lc_class_included file of the full dataset",
+ "entries": [
+  {
+   "family": "css",
+   "n": 7,
+   "k": 1,
+   "d": 3,
+   "degeneracy": 0,
+   "samples": [
+    {
+     "g6": "FEhf?",
+     "lc_class": 1,
+     "line_in_full_dataset": 1
+    }
+   ]
+  },
+  {
+   "family": "css",
+   "n": 8,
+   "k": 1,
+   "d": 3,
+   "degeneracy": 1,
+   "samples": [
+    {
+     "g6": "G?Bedo",
+     "lc_class": 1,
+     "line_in_full_dataset": 1
+    },
+    {
+     "g6": "G?qbF_",
+     "lc_class": 2,
+     "line_in_full_dataset": 4
+    }
+   ]
+  },
+  {
+   "family": "css",
+   "n": 9,
+   "k": 1,
+   "d": 3,
+   "degeneracy": 0,
+   "samples": [
+    {
+     "g6": "H?B@dPW",
+     "lc_class": 17,
+     "line_in_full_dataset": 102
+    },
+    {
+     "g6": "H?BDdPw",
+     "lc_class": 18,
+     "line_in_full_dataset": 111
+    }
+   ]
+  },
+  {
+   "family": "css",
+   "n": 9,
+   "k": 1,
+   "d": 3,
+   "degeneracy": 1,
+   "samples": [
+    {
+     "g6": "H???Fre",
+     "lc_class": 1,
+     "line_in_full_dataset": 1
+    },
+    {
+     "g6": "H??CBbk",
+     "lc_class": 2,
+     "line_in_full_dataset": 2
+    }
+   ]
+  },
+  {
+   "family": "css",
+   "n": 10,
+   "k": 1,
+   "d": 3,
+   "degeneracy": 0,
+   "samples": [
+    {
+     "g6": "I?BDA_wq?",
+     "lc_class": 125,
+     "line_in_full_dataset": 3447
+    },
+    {
+     "g6": "I?BDBbg}?",
+     "lc_class": 128,
+     "line_in_full_dataset": 3607
+    }
+   ]
+  },
+  {
+   "family": "css",
+   "n": 10,
+   "k": 1,
+   "d": 3,
+   "degeneracy": 1,
+   "samples": [
+    {
+     "g6": "I????Bwxo",
+     "lc_class": 1,
+     "line_in_full_dataset": 1
+    },
+    {
+     "g6": "I???C@oz_",
+     "lc_class": 2,
+     "line_in_full_dataset": 3
+    }
+   ]
+  },
+  {
+   "family": "css",
+   "n": 10,
+   "k": 2,
+   "d": 3,
+   "degeneracy": 0,
+   "samples": [
+    {
+     "g6": "I??E@qsZ?",
+     "lc_class": 63,
+     "line_in_full_dataset": 1364
+    },
+    {
+     "g6": "I??FCpSJ?",
+     "lc_class": 76,
+     "line_in_full_dataset": 1810
+    }
+   ]
+  },
+  {
+   "family": "css",
+   "n": 10,
+   "k": 2,
+   "d": 3,
+   "degeneracy": 1,
+   "samples": [
+    {
+     "g6": "I??CB`gv?",
+     "lc_class": 37,
+     "line_in_full_dataset": 464
+    },
+    {
+     "g6": "I?AA@BoBo",
+     "lc_class": 85,
+     "line_in_full_dataset": 2016
+    }
+   ]
+  },
+  {
+   "family": "css",
+   "n": 11,
+   "k": 1,
+   "d": 3,
+   "degeneracy": 0,
+   "samples": [
+    {
+     "g6": "J??ED?[]Bg?",
+     "lc_class": 666,
+     "line_in_full_dataset": 56222
+    },
+    {
+     "g6": "J??EDagXAw?",
+     "lc_class": 706,
+     "line_in_full_dataset": 62434
+    }
+   ]
+  },
+  {
+   "family": "css",
+   "n": 11,
+   "k": 1,
+   "d": 3,
+   "degeneracy": 1,
+   "samples": [
+    {
+     "g6": "J??????}FN?",
+     "lc_class": 1,
+     "line_in_full_dataset": 1
+    },
+    {
+     "g6": "J??????~FF?",
+     "lc_class": 2,
+     "line_in_full_dataset": 3
+    }
+   ]
+  },
+  {
+   "family": "css",
+   "n": 11,
+   "k": 2,
+   "d": 3,
+   "degeneracy": 0,
+   "samples": [
+    {
+     "g6": "J??ED?W\\\\FW?",
+     "lc_class": 640,
+     "line_in_full_dataset": 52548
+    },
+    {
+     "g6": "J??ED@WTDW?",
+     "lc_class": 651,
+     "line_in_full_dataset": 53933
+    }
+   ]
+  },
+  {
+   "family": "css",
+   "n": 11,
+   "k": 2,
+   "d": 3,
+   "degeneracy": 1,
+   "samples": [
+    {
+     "g6": "J???C@oYE{?",
+     "lc_class": 98,
+     "line_in_full_dataset": 1596
+    },
+    {
+     "g6": "J???C@oZEs?",
+     "lc_class": 108,
+     "line_in_full_dataset": 2033
+    }
+   ]
+  },
+  {
+   "family": "css",
+   "n": 11,
+   "k": 3,
+   "d": 3,
+   "degeneracy": 0,
+   "samples": [
+    {
+     "g6": "J???F?[udk?",
+     "lc_class": 256,
+     "line_in_full_dataset": 14604
+    },
+    {
+     "g6": "J???FA[U`k?",
+     "lc_class": 257,
+     "line_in_full_dataset": 14644
+    }
+   ]
+  },
+  {
+   "family": "general",
+   "n": 5,
+   "k": 1,
+   "d": 3,
+   "degeneracy": 0,
+   "samples": [
+    {
+     "g6": "DUW",
+     "lc_class": 1,
+     "line_in_full_dataset": 1
+    },
+    {
+     "g6": "DUw",
+     "lc_class": 1,
+     "line_in_full_dataset": 2
+    }
+   ]
+  },
+  {
+   "family": "general",
+   "n": 6,
+   "k": 1,
+   "d": 3,
+   "degeneracy": 1,
+   "samples": [
+    {
+     "g6": "ECpo",
+     "lc_class": 1,
+     "line_in_full_dataset": 1
+    },
+    {
+     "g6": "ECro",
+     "lc_class": 1,
+     "line_in_full_dataset": 2
+    }
+   ]
+  },
+  {
+   "family": "general",
+   "n": 7,
+   "k": 1,
+   "d": 3,
+   "degeneracy": 0,
+   "samples": [
+    {
+     "g6": "F?zTo",
+     "lc_class": 9,
+     "line_in_full_dataset": 638
+    },
+    {
+     "g6": "FCR`o",
+     "lc_class": 11,
+     "line_in_full_dataset": 990
+    }
+   ]
+  },
+  {
+   "family": "general",
+   "n": 7,
+   "k": 1,
+   "d": 3,
+   "degeneracy": 1,
+   "samples": [
+    {
+     "g6": "F?Beo",
+     "lc_class": 1,
+     "line_in_full_dataset": 1
+    },
+    {
+     "g6": "F?`F_",
+     "lc_class": 2,
+     "line_in_full_dataset": 11
+    }
+   ]
+  },
+  {
+   "family": "general",
+   "n": 8,
+   "k": 1,
+   "d": 3,
+   "degeneracy": 1,
+   "samples": [
+    {
+     "g6": "G??FEw",
+     "lc_class": 1,
+     "line_in_full_dataset": 1
+    },
+    {
+     "g6": "G??FeW",
+     "lc_class": 2,
+     "line_in_full_dataset": 11
+    }
+   ]
+  },
+  {
+   "family": "general",
+   "n": 8,
+   "k": 2,
+   "d": 3,
+   "degeneracy": 0,
+   "samples": [
+    {
+     "g6": "G?`vAs",
+     "lc_class": 54,
+     "line_in_full_dataset": 35961
+    },
+    {
+     "g6": "G?otQk",
+     "lc_class": 63,
+     "line_in_full_dataset": 88865
+    }
+   ]
+  },
+  {
+   "family": "general",
+   "n": 8,
+   "k": 2,
+   "d": 3,
+   "degeneracy": 1,
+   "samples": [
+    {
+     "g6": "G?`ad_",
+     "lc_class": 39,
+     "line_in_full_dataset": 15853
+    },
+    {
+     "g6": "G?`cis",
+     "lc_class": 44,
+     "line_in_full_dataset": 20109
+    }
+   ]
+  },
+  {
+   "family": "general",
+   "n": 8,
+   "k": 3,
+   "d": 3,
+   "degeneracy": 0,
+   "samples": [
+    {
+     "g6": "G?`e`o",
+     "lc_class": 50,
+     "line_in_full_dataset": 30121
+    },
+    {
+     "g6": "G?otQg",
+     "lc_class": 62,
+     "line_in_full_dataset": 88009
+    }
+   ]
+  }
+ ]
+}

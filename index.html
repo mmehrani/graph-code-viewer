@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graph Code Viewer — sample dataset</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #1c1e21; --muted: #6b7280; --line: #d9dde3;
+    --accent: #1f5fbf; --accent-ink: #ffffff; --warn-bg: #fff4e5; --warn-ink: #8a4b00;
+    --err-bg: #fdecec; --err-ink: #9b1c1c; --ok-bg: #e8f5ec; --ok-ink: #1b5e20;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 18px;
+    display: flex; align-items: baseline; gap: 14px; }
+  header h1 { font-size: 17px; margin: 0; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  .layout { display: grid; grid-template-columns: 330px 1fr; min-height: calc(100vh - 46px); }
+  aside { background: var(--panel); border-right: 1px solid var(--line); padding: 14px; overflow-y: auto; }
+  main { padding: 16px 20px; min-width: 0; }
+  fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px 12px; margin: 0 0 12px; }
+  legend { font-weight: 600; padding: 0 4px; font-size: 13px; }
+  label { display: block; font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+  input[type=text], input[type=number], select {
+    width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; background: #fff; }
+  input[type=text].mono { font-family: var(--mono); }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; min-width: 0; }
+  .row > .narrow { flex: 0 0 76px; }
+  button { font: inherit; padding: 7px 12px; border-radius: 6px; border: 1px solid var(--line);
+    background: #fff; color: var(--ink); cursor: pointer; }
+  button:hover:not(:disabled) { border-color: #9aa3af; }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.primary:hover:not(:disabled) { background: #184c99; }
+  button.danger { color: var(--err-ink); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { flex: 1; border: 0; border-radius: 0; background: #fff; padding: 7px 4px; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .stack { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .msg { padding: 8px 10px; border-radius: 6px; font-size: 13px; margin-top: 8px; }
+  .msg.warn { background: var(--warn-bg); color: var(--warn-ink); }
+  .msg.err  { background: var(--err-bg);  color: var(--err-ink); }
+  .msg.ok   { background: var(--ok-bg);   color: var(--ok-ink); }
+  .msg.info { background: #eef3fb; color: #1f3a66; }
+  .drop { border: 2px dashed var(--line); border-radius: 8px; padding: 10px; text-align: center;
+    color: var(--muted); font-size: 12.5px; margin-top: 8px; }
+  .drop.over { border-color: var(--accent); background: #eef3fb; }
+  #dsStatus { font-size: 12.5px; }
+  #dsStatus ul { margin: 4px 0 0; padding-left: 18px; }
+  code, .mono { font-family: var(--mono); }
+
+  /* progress */
+  #progress { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; }
+  #progress .bar { height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden; margin: 6px 0; }
+  #progress .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .15s linear; }
+  #progress .bar.indet > div { width: 30%; animation: slide 1.2s linear infinite; }
+  @keyframes slide { from { margin-left: -30%; } to { margin-left: 100%; } }
+  #progress .stats { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 12.5px; color: var(--muted); }
+  #progress .stats b { color: var(--ink); font-weight: 600; }
+
+  /* nav */
+  #nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+  #nav .pos { font-size: 13px; color: var(--muted); margin-left: 4px; }
+  #nav .spacer { flex: 1; }
+
+  /* card */
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px 16px; }
+  .card h2 { margin: 0 0 2px; font-size: 18px; }
+  .card .meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 13px; align-items: center; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; border: 1px solid var(--line); background: #f3f4f6; color: var(--ink); }
+  .badge.deg { background: #fdf2e0; border-color: #f0c88a; color: #7a4a00; }
+  .badge.nondeg { background: #e6f2ea; border-color: #a8d5b5; color: #1b5e20; }
+  .badge.same { background: #eef3fb; border-color: #b9cdf0; color: #1f3a66; }
+  .badge.lc { background: #f1e9fb; border-color: #cdb4ec; color: #4a2380; }
+  .graphs { display: flex; flex-wrap: wrap; gap: 14px; margin: 14px 0 6px; }
+  .panel { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px 8px; background: #fff; }
+  .panel .ptitle { display: flex; justify-content: space-between; align-items: center; font-size: 13px; margin-bottom: 2px; }
+  .panel .ptitle .pauli { color: var(--muted); font-family: var(--mono); font-size: 12px; margin-left: 8px; }
+  .panel .ptitle button { padding: 2px 7px; font-size: 11px; }
+  svg.g { display: block; touch-action: none; }
+  svg.g line { stroke: #555; stroke-width: 1.6; }
+  svg.g circle { stroke-width: 1.6; cursor: grab; }
+  svg.g text { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; pointer-events: none; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .toolbar .seg { width: 260px; }
+  .toolbar .seg button { font-size: 12.5px; }
+  h3 { font-size: 14px; margin: 18px 0 6px; }
+  table.mat { border-collapse: collapse; font-family: var(--mono); font-size: 12px; margin-bottom: 8px; }
+  table.mat th, table.mat td { border: 1px solid #e5e7eb; padding: 2px 6px; text-align: center; min-width: 22px; }
+  table.mat th { background: #f3f4f6; font-weight: 600; }
+  table.mat td.one { background: #1c1e21; color: #fff; font-weight: 700; }
+  table.mat td.zero { color: #c3c7cf; }
+  table.mat td.sep, table.mat th.sep { border-left: 2px solid #9aa3af; }
+  table.mat td.lbl { text-align: left; background: #fafafa; }
+  table.mat td.pauli { text-align: left; white-space: nowrap; }
+  .twocol { display: flex; flex-wrap: wrap; gap: 24px; }
+  details { margin-top: 10px; font-size: 13px; }
+  details summary { cursor: pointer; color: var(--muted); }
+  details pre { font-size: 12px; background: #f9fafb; padding: 8px; border-radius: 6px; overflow-x: auto; }
+  .empty { color: var(--muted); padding: 40px 10px; text-align: center; }
+  .kv { font-size: 13px; }
+  .kv b { font-weight: 600; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } aside { border-right: 0; border-bottom: 1px solid var(--line); } }
+</style>
+<style>
+  #demoBanner { background: var(--warn-bg); color: var(--warn-ink); border-bottom: 1px solid #f0d9b5;
+    padding: 10px 18px; font-size: 13px; line-height: 1.5; }
+  #demoBanner b { font-weight: 650; }
+  #demoBanner a { color: inherit; }
+  #demoBanner ul { margin: 6px 0 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Graph Code Viewer</h1>
+  <span class="sub">browse the CSS / general stabilizer graph-code datasets — a sample dataset is loaded from this site; anything you open yourself stays in your browser</span>
+</header>
+<div id="demoBanner">
+  <b>Trial version — this is not the complete visualisation of all graph codes.</b>
+  This page carries only a <b>sample</b> of the dataset: at most two codes per
+  (n, k, d, degeneracy) category — 41 codes in 21 categories — chosen, where the
+  category spans more than one, from different local-Clifford classes.
+  <ul>
+    <li>Left out entirely (too large to host): general stabilizer n = 9, CSS n = 12 and n = 13 (2.5 GB, 30 MB and 1.7 GB).</li>
+    <li>The <i>Full dataset</i> counts in the search hints, and the LC-class numbers, are for the
+        <b>complete</b> dataset — not for the handful of codes loaded here, so most searches will
+        return far fewer results than the hint announces.</li>
+    <li>Line numbers on the result cards are lines of these demo files. The line of each sample in
+        the full dataset is in <a href="demo_manifest.json">demo_manifest.json</a>.</li>
+    <li>The complete dataset will be released with the paper. If you already have a copy, press
+        <i>Open dataset folder…</i> below and the viewer will use it instead.</li>
+  </ul>
+</div>
+
+<div class="layout">
+<aside>
+  <fieldset>
+    <legend>1 · Code family</legend>
+    <div class="seg" id="familySeg">
+      <button data-v="css" class="on">CSS (bipartite graphs)</button>
+      <button data-v="general">General stabilizer</button>
+    </div>
+    <div class="note" id="familyNote"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>2 · Dataset files</legend>
+    <div id="dsStatus" class="note">No dataset opened yet.</div>
+    <div class="stack">
+      <button id="btnFolder">Open dataset folder…</button>
+      <button id="btnFile">Open a single dataset file…</button>
+    </div>
+    <div class="drop" id="drop">…or drop the folder / a <code>.gz</code> file here</div>
+    <input type="file" id="inFolder" webkitdirectory directory multiple hidden>
+    <input type="file" id="inFile" hidden>
+    <div id="dsMsg"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>3 · What to look for</legend>
+    <div class="seg" id="modeSeg">
+      <button data-v="params" class="on">Search by parameters</button>
+      <button data-v="g6">By g6 string</button>
+    </div>
+    <label>n (qubits / vertices)</label>
+    <select id="fN"></select>
+    <div id="paramsBox">
+      <div class="row">
+        <div><label>k (logical qubits)</label><input type="number" id="fK" min="1" placeholder="any"></div>
+        <div><label>d (distance)</label><input type="number" id="fD" min="1" placeholder="any"></div>
+      </div>
+      <label>Degeneracy</label>
+      <select id="fDeg"><option value="any">any</option><option value="1">degenerate</option><option value="0">non-degenerate</option></select>
+      <label>Check-matrix row weight</label>
+      <div class="row"><select class="narrow" id="fRowMode"><option value="le">≤</option><option value="eq">=</option></select><input type="number" id="fRow" min="1" placeholder="any"></div>
+      <label>Check-matrix column weight</label>
+      <div class="row"><select class="narrow" id="fColMode"><option value="le">≤</option><option value="eq">=</option></select><input type="number" id="fCol" min="1" placeholder="any"></div>
+    </div>
+    <div id="g6Box" hidden>
+      <label>graph6 string (exactly as in the dataset)</label>
+      <input type="text" id="fG6" class="mono" placeholder='e.g. H???Fre' spellcheck="false">
+      <div class="note" id="g6Note">n is read from the string; the file for that n is used.</div>
+      <div class="note">Every dataset line with this graph is returned.</div>
+    </div>
+    <div class="stack">
+      <button class="primary" id="btnSearch">Search</button>
+    </div>
+    <div id="lookoutMsg"></div>
+    <div id="searchMsg"></div>
+  </fieldset>
+  <div class="note">Tip: ← / → keys step through matches. Scanning a multi-GB file can take minutes — the progress bar shows where it is; keep the page open.</div>
+</aside>
+
+<main>
+  <div id="progress" hidden>
+    <div id="progTitle" style="font-weight:600"></div>
+    <div class="bar"><div id="progFill"></div></div>
+    <div class="stats">
+      <span>line <b id="pLine">0</b></span>
+      <span><b id="pPct">0%</b> of file</span>
+      <span><b id="pRate">–</b> lines/s</span>
+      <span>elapsed <b id="pElapsed">0 s</b></span>
+      <span>ETA <b id="pEta">–</b></span>
+      <span>matches so far <b id="pMatches">0</b></span>
+      <span id="pHint" style="color:var(--warn-ink)"></span>
+    </div>
+  </div>
+
+  <div id="nav" hidden>
+    <button id="btnPrev">◀ Previous</button>
+    <button id="btnNext">Next ▶</button>
+    <button id="btnNextGraph" title="Skip lines that share the current graph">Next distinct graph ⏭</button>
+    <button id="btnPrevClass" title="Jump back to the first shown match of the previous local-Clifford equivalence class (needs the _lc_class_included files)">⏮ Previous LC class</button>
+    <button id="btnNextClass" title="Jump to the next match whose graph state lies in a local-Clifford equivalence class not shown yet (needs the _lc_class_included files)">Next LC class ⏭</button>
+    <button id="btnCount" title="Scan the rest of the file and count every match (does not display them)">Count all matches</button>
+    <button id="btnStop" class="danger" hidden>Stop scan</button>
+    <span class="pos" id="navPos"></span>
+    <span class="spacer"></span>
+    <span class="pos" id="navTotal"></span>
+  </div>
+
+  <div id="result"><div class="empty">Choose a code family, open the dataset folder, set the parameters and press <b>Search</b>.</div></div>
+</main>
+</div>
+
+<script>
+'use strict';
+/* ================================================================
+   Lookout tables (from C/CSS_codes_lookout and C/LDPC_codes_lookout).
+   Only used to (a) report "no such code" instantly and (b) show the
+   expected number of matches. Row/col counts in these tables are partial
+   (LDPC-thresholded), so only the (d, k, degeneracy) totals are trusted.
+   ================================================================ */
+const LOOKOUT = {"css":{"10":[{"d":3,"k":1,"total":3337,"deg":{"count":3179,"ldpc":[[4,2,338],[4,3,429],[4,4,46]]},"nondeg":{"count":158,"ldpc":[[4,3,15]]}},{"d":3,"k":2,"total":459,"deg":{"count":14,"ldpc":[[6,3,14]]},"nondeg":{"count":445,"ldpc":[[4,2,103]]}}],"11":[{"d":3,"k":1,"total":40461,"deg":{"count":37582,"ldpc":[[4,2,1390],[4,3,2873],[4,4,150]]},"nondeg":{"count":2879,"ldpc":[[5,3,1050],[5,4,1724],[5,5,33]]}},{"d":3,"k":2,"total":27352,"deg":{"count":21230,"ldpc":[[5,2,1347],[5,3,13619],[5,4,1284]]},"nondeg":{"count":6122,"ldpc":[[5,3,4003],[5,4,571],[5,5,32]]}},{"d":3,"k":3,"total":3488,"deg":null,"nondeg":{"count":3488,"ldpc":[[5,3,3165]]}}],"12":[{"d":3,"k":1,"total":277702,"deg":{"count":277702,"ldpc":[[4,2,2160],[4,3,6413],[4,4,342]]},"nondeg":null},{"d":3,"k":2,"total":1339302,"deg":{"count":695519,"ldpc":[[4,2,758]]},"nondeg":{"count":643783,"ldpc":[[4,3,4148]]}},{"d":3,"k":3,"total":443384,"deg":{"count":266506,"ldpc":[[5,3,37745],[5,4,3854]]},"nondeg":{"count":176878,"ldpc":[[6,3,136947],[6,4,38893],[6,5,1038]]}},{"d":3,"k":4,"total":48834,"deg":null,"nondeg":{"count":48834,"ldpc":[[6,3,43910],[6,4,4924]]}},{"d":4,"k":1,"total":6,"deg":{"count":6,"ldpc":[[6,4,6]]},"nondeg":null},{"d":4,"k":2,"total":9,"deg":null,"nondeg":{"count":9,"ldpc":[[6,3,9]]}}],"13":[{"d":3,"k":1,"total":1229809,"deg":{"count":1229809,"ldpc":[[4,2,1565],[4,3,7878],[4,4,343]]},"nondeg":null},{"d":3,"k":2,"total":15139523,"deg":{"count":15114529,"ldpc":[[5,2,99303],[5,3,4231924],[5,4,2458917],[5,5,136569]]},"nondeg":{"count":24994,"ldpc":[[5,3,482],[5,4,13326]]}},{"d":3,"k":3,"total":120158714,"deg":{"count":18993478,"ldpc":[[5,2,14762],[5,3,869178],[5,4,163468],[5,5,3037]]},"nondeg":{"count":101165236,"ldpc":[[5,3,29835503],[5,4,25743453],[5,5,1302645]]}},{"d":3,"k":4,"total":9068283,"deg":{"count":3866909,"ldpc":[[6,3,2278227],[6,4,221679],[6,5,2875]]},"nondeg":{"count":5201374,"ldpc":[[7,3,4437859],[7,4,709447],[7,5,54068]]}},{"d":3,"k":5,"total":634456,"deg":null,"nondeg":{"count":634456,"ldpc":[[7,3,634456]]}},{"d":4,"k":1,"total":630,"deg":{"count":329,"ldpc":[[6,3,47],[6,4,259],[6,5,21],[6,6,2]]},"nondeg":{"count":301,"ldpc":[[5,3,20]]}},{"d":4,"k":2,"total":190,"deg":{"count":70,"ldpc":[[6,3,50],[6,4,20]]},"nondeg":{"count":120,"ldpc":[[6,3,59],[6,4,61]]}}],"7":[{"d":3,"k":1,"total":1,"deg":null,"nondeg":{"count":1,"ldpc":[[4,3,1]]}}],"8":[{"d":3,"k":1,"total":6,"deg":{"count":6,"ldpc":[[5,3,4],[5,4,2]]},"nondeg":null}],"9":[{"d":3,"k":1,"total":177,"deg":{"count":112,"ldpc":[[4,2,9],[4,3,12]]},"nondeg":{"count":65,"ldpc":[[4,3,53],[4,4,9]]}}]},"general":{"5":[{"d":3,"k":1,"total":3,"deg":null,"nondeg":{"count":3,"ldpc":[[4,4,3]]}}],"6":[{"d":3,"k":1,"total":21,"deg":{"count":21,"ldpc":[[5,4,19],[5,5,2]]},"nondeg":null}],"7":[{"d":3,"k":1,"total":3379,"deg":{"count":1031,"ldpc":[[4,3,44],[4,4,218]]},"nondeg":{"count":2348,"ldpc":[[4,4,1549]]}}],"8":[{"d":3,"k":1,"total":40432,"deg":{"count":40432,"ldpc":[[4,3,396],[4,4,3950]]},"nondeg":null},{"d":3,"k":2,"total":410768,"deg":{"count":16584,"ldpc":[[5,4,16584]]},"nondeg":{"count":394184,"ldpc":[[5,4,168715],[5,5,207020]]}},{"d":3,"k":3,"total":3624,"deg":null,"nondeg":{"count":3624,"ldpc":[[6,4,249],[6,5,3375]]}}],"9":[{"d":3,"k":1,"total":107855,"deg":{"count":107855,"ldpc":[[4,4,2390]]},"nondeg":null},{"d":3,"k":2,"total":9152281,"deg":{"count":9152281,"ldpc":[[5,3,2297],[5,4,2138585],[5,5,3042941]]},"nondeg":null},{"d":3,"k":3,"total":187937995,"deg":{"count":384248,"ldpc":[[6,4,124392],[6,5,209032]]},"nondeg":{"count":187553747,"ldpc":[[5,4,42307466],[5,5,25500534]]}}]}};
+
+// LC-equivalence classes of the graph states per (k, d, degeneracy), from C/gsc_lc_results (also refreshed by viewer/update_lookout.py)
+const LC_CLASSES = {"css":{"10":[[1,3,0,3],[1,3,1,114],[2,3,0,12],[2,3,1,3]],"11":[[1,3,0,8],[1,3,1,587],[2,3,0,17],[2,3,1,122],[3,3,0,17]],"12":[[1,3,1,2379],[1,4,1,2],[2,3,0,88],[2,3,1,1384],[2,4,0,2],[3,3,0,72],[3,3,1,273],[4,3,0,66]],"13":[[1,3,1,7689],[1,4,0,5],[1,4,1,19],[2,3,0,8],[2,3,1,9017],[2,4,0,3],[2,4,1,3],[3,3,0,396],[3,3,1,4702],[4,3,0,505],[4,3,1,1129],[5,3,0,200]],"7":[[1,3,0,1]],"8":[[1,3,1,2]],"9":[[1,3,0,4],[1,3,1,18]]},"general":{"5":[[1,3,0,1]],"6":[[1,3,1,1]],"7":[[1,3,0,4],[1,3,1,10]],"8":[[1,3,1,60],[2,3,0,10],[2,3,1,6],[3,3,0,6]],"9":[[1,3,1,144],[2,3,1,163],[3,3,0,77],[3,3,1,36]]}};
+
+/* ================================================================ utils */
+const $ = id => document.getElementById(id);
+const SUB = '₀₁₂₃₄₅₆₇₈₉';
+const sub = n => String(n).replace(/\d/g, d => SUB[+d]);
+const fmtInt = n => n.toLocaleString('en-US');
+const fmtBytes = b => b >= 1e9 ? (b/1e9).toFixed(2)+' GB' : b >= 1e6 ? (b/1e6).toFixed(1)+' MB' : b >= 1e3 ? (b/1e3).toFixed(0)+' kB' : b+' B';
+const fmtDur = s => !isFinite(s) ? '–' : s < 60 ? Math.round(s)+' s' : s < 3600 ? Math.floor(s/60)+' min '+Math.round(s%60)+' s' : (s/3600).toFixed(1)+' h';
+const bit = (v, i) => Math.floor(v / Math.pow(2, i)) % 2;   // safe beyond 31 bits
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function setMsg(el, kind, html) { el.innerHTML = html ? `<div class="msg ${kind}">${html}</div>` : ''; }
+
+/* ================================================================ graph6 */
+function decodeG6(s) {
+  s = s.trim();
+  if (!s.length) throw new Error('empty graph6 string');
+  const n = s.charCodeAt(0) - 63;
+  if (n < 1 || n > 62) throw new Error('graph6 strings with n > 62 are not supported');
+  const need = Math.ceil(n*(n-1)/2 / 6);
+  if (s.length - 1 < need) throw new Error(`graph6 string too short for n = ${n}`);
+  const bits = [];
+  for (let i = 1; i <= need; i++) {
+    const v = s.charCodeAt(i) - 63;
+    if (v < 0 || v > 63) throw new Error('invalid graph6 character');
+    for (let b = 5; b >= 0; b--) bits.push((v >> b) & 1);
+  }
+  const edges = []; let p = 0;
+  const adj = Array.from({length:n}, () => []);
+  for (let j = 1; j < n; j++) for (let i = 0; i < j; i++) {
+    if (bits[p++]) { edges.push([i, j]); adj[i].push(j); adj[j].push(i); }
+  }
+  return { n, edges, adj };
+}
+
+/* =================================================== Mathematica lists */
+function parseML(s) {
+  let i = 0;
+  const ws = () => { while (i < s.length && (s[i] === ' ' || s[i] === '\t' || s[i] === '\r')) i++; };
+  function val() {
+    ws(); const c = s[i];
+    if (c === '{') {
+      i++; const arr = []; ws();
+      if (s[i] === '}') { i++; return arr; }
+      for (;;) {
+        arr.push(val()); ws();
+        if (s[i] === ',') { i++; continue; }
+        if (s[i] === '}') { i++; return arr; }
+        throw new Error('bad list at ' + i);
+      }
+    }
+    if (c === '"') { const j = s.indexOf('"', i+1); if (j < 0) throw new Error('unterminated string'); const str = s.slice(i+1, j); i = j+1; return str; }
+    let j = i; while (j < s.length && /[-+0-9.eE]/.test(s[j])) j++;
+    if (j === i) throw new Error('bad token at ' + i);
+    const num = Number(s.slice(i, j)); i = j; return num;
+  }
+  return val();
+}
+
+/* ======================================================== record model */
+// Cheap pre-filter without a full parse: g6, k, d, degenerate, row, col.
+function quickFields(line) {
+  const q1 = line.indexOf('"'); if (q1 < 0) return null;
+  const q2 = line.indexOf('"', q1 + 1); if (q2 < 0) return null;
+  const b1 = line.indexOf('{', q2); if (b1 < 0) return null;
+  const b2 = line.indexOf('}', b1); if (b2 < 0) return null;
+  const inner = line.slice(b1 + 1, b2).trim();
+  let k = 0; if (inner.length) { k = 1; for (let i = 0; i < inner.length; i++) if (inner.charCodeAt(i) === 44) k++; }
+  const end = line.lastIndexOf('}'); if (end < 0) return null;
+  const lastList = line.lastIndexOf('}', end - 1); if (lastList < 0) return null;
+  const tail = line.slice(lastList + 1, end).split(',');
+  const nums = [];
+  for (const t of tail) { const u = t.trim(); if (u.length) nums.push(Number(u)); }
+  if (nums.length < 4) return null;
+  return { g6: line.slice(q1 + 1, q2), k, d: nums[0], deg: nums[1], row: nums[2], col: nums[3], extra: nums.slice(4),
+    pairs: nums.length > 4 ? nums[4] : null, lc: nums.length > 5 ? nums[5] : null };
+}
+
+function parseRecord(line) {
+  const r = parseML(line);
+  if (!Array.isArray(r) || typeof r[0] !== 'string') throw new Error('record does not start with a g6 string');
+  const lists = r.filter(Array.isArray);
+  const g = decodeG6(r[0]);
+  const n = g.n;
+  const rec = { g6: r[0], n, graph: g, raw: line };
+  if (lists.length >= 4) {            // CSS: g6, logicalX (2n-bit), logicalZ (2n-bit), stabsX, stabsZ, d, deg, row, col, extra...
+    rec.family = 'css';
+    [rec.logicalX, rec.logicalZ, rec.stabX, rec.stabZ] = lists;
+    const tail = r.slice(5);
+    [rec.d, rec.deg, rec.row, rec.col] = tail; rec.extra = tail.slice(4);
+    rec.stabs = rec.stabX.concat(rec.stabZ);
+  } else if (lists.length === 3) {    // general: g6, Cwords, Zops, stabs, d, deg, row, col, extra...
+    rec.family = 'general';
+    [rec.logicalX, rec.logicalZ, rec.stabs] = lists;
+    const tail = r.slice(4);
+    [rec.d, rec.deg, rec.row, rec.col] = tail; rec.extra = tail.slice(4);
+  } else throw new Error('unrecognised record shape (' + lists.length + ' lists)');
+  rec.k = rec.logicalX.length;
+  rec.pairs = rec.extra.length > 0 ? rec.extra[0] : null;     // number of correctable pairs
+  rec.lcClass = rec.extra.length > 1 ? rec.extra[1] : null;   // LC-equivalence class label of the graph state (files *_lc_class_included)
+  return rec;
+}
+
+// 2n-bit symplectic integer -> {x:[...], z:[...]} arrays indexed by qubit (0-based = qubit 1)
+function splitXZ(v, n) {
+  const x = [], z = [];
+  for (let q = 0; q < n; q++) { const b = n - 1 - q; x.push(bit(v, n + b)); z.push(bit(v, b)); }
+  return { x, z };
+}
+function pauliString(v, n, opts = {}) {
+  const { x, z } = splitXZ(v, n);
+  let s = '';
+  for (let q = 0; q < n; q++) {
+    const l = sub(q + 1);
+    if (x[q] && z[q]) s += 'Y' + l; else if (x[q]) s += 'X' + l; else if (z[q]) s += 'Z' + l;
+  }
+  return s || 'I';
+}
+function xString(v, n) { // n-bit codeword -> X-type Pauli string
+  let s = ''; for (let q = 0; q < n; q++) if (bit(v, n - 1 - q)) s += 'X' + sub(q + 1); return s || 'I';
+}
+function zString(v, n) { // n-bit codeword -> Z-type Pauli string
+  let s = ''; for (let q = 0; q < n; q++) if (bit(v, n - 1 - q)) s += 'Z' + sub(q + 1); return s || 'I';
+}
+function pauliWeight(v, n) { const { x, z } = splitXZ(v, n); let w = 0; for (let q = 0; q < n; q++) if (x[q] || z[q]) w++; return w; }
+
+/* =================================================== streaming reader */
+function hasStreamSupport() { return typeof DecompressionStream === 'function' && typeof TextDecoderStream === 'function'; }
+
+// Opens {size, stream} as a line reader. Detects gzip by magic bytes, counts raw bytes for progress.
+async function openLines(src) {
+  const stream = await src.stream();
+  const rawReader = stream.getReader();
+  const first = await rawReader.read();
+  const isGz = !first.done && first.value.length >= 2 && first.value[0] === 0x1f && first.value[1] === 0x8b;
+  let counted = 0;
+  const bytes = new ReadableStream({
+    start(ctrl) { if (!first.done) { counted += first.value.length; ctrl.enqueue(first.value); } else ctrl.close(); },
+    async pull(ctrl) { const r = await rawReader.read(); if (r.done) { ctrl.close(); return; } counted += r.value.length; ctrl.enqueue(r.value); },
+    cancel(reason) { return rawReader.cancel(reason); }
+  });
+  let s = bytes;
+  if (isGz) s = s.pipeThrough(new DecompressionStream('gzip'));
+  const reader = s.pipeThrough(new TextDecoderStream()).getReader();
+  let buf = '', pending = [], pi = 0, done = false;
+  return {
+    isGz, size: src.size,
+    bytesRead: () => counted,
+    // returns next line (without newline) or null at EOF
+    async next() {
+      for (;;) {
+        if (pi < pending.length) return pending[pi++];
+        if (done) { if (buf.length) { const l = buf; buf = ''; return l; } return null; }
+        const r = await reader.read();
+        if (r.done) { done = true; continue; }
+        buf += r.value;
+        const parts = buf.split('\n');
+        buf = parts.pop();
+        pending = parts; pi = 0;
+      }
+    },
+    async cancel() { try { await reader.cancel(); } catch (e) {} }
+  };
+}
+
+/* ================================================== dataset index */
+// entry = {family, n, name, size, path, open: async () => ({size, stream: async () => ReadableStream})}
+const index = { entries: new Map(), label: '' };
+const NAME_RE = /^graphs(\d+)(CSS|LDPC)(_lc_class_included)?\.(gz|txt)$/i;
+function entryKey(family, n) { return family + ':' + n; }
+function addEntry(e) {
+  const key = entryKey(e.family, e.n);
+  const prev = index.entries.get(key);
+  // prefer the *_lc_class_included files (they carry the LC-class label), then .gz over .txt (the .txt next to a big .gz can be a stub)
+  if (prev && (prev.hasLc ? 1 : 0) > (e.hasLc ? 1 : 0)) return;
+  if (prev && (prev.hasLc ? 1 : 0) === (e.hasLc ? 1 : 0) && prev.isGz && !e.isGz) return;
+  index.entries.set(key, e);
+}
+function classifyName(name) {
+  const m = NAME_RE.exec(name); if (!m) return null;
+  return { n: +m[1], family: m[2].toUpperCase() === 'CSS' ? 'css' : 'general', hasLc: !!m[3], isGz: m[4].toLowerCase() === 'gz' };
+}
+function fileEntry(file, path) {
+  const c = classifyName(file.name);
+  return { ...(c || { n: null, family: null, hasLc: /_lc_class_included\./i.test(file.name), isGz: /\.gz$/i.test(file.name) }), name: file.name, path: path || file.name, size: file.size,
+    open: async () => ({ size: file.size, stream: async () => file.stream() }) };
+}
+async function sniffEntry(e) {  // fill n / family from the first record when the file name is not standard
+  const src = await e.open();
+  const lr = await openLines(src);
+  const line = await lr.next(); await lr.cancel();
+  if (line == null || !line.trim().length) throw new Error(e.name + ' is empty');
+  const rec = parseRecord(line.trim());
+  e.n = rec.n; e.family = rec.family; e.isGz = lr.isGz;
+  return e;
+}
+
+function refreshDatasetStatus() {
+  const byFam = { css: [], general: [] };
+  for (const e of index.entries.values()) byFam[e.family].push(e.n);
+  const html = [];
+  if (index.label) html.push(`<div><b>${esc(index.label)}</b></div>`);
+  if (!index.entries.size) { $('dsStatus').innerHTML = 'No dataset files found.'; }
+  else {
+    const li = f => byFam[f].length ? byFam[f].sort((a,b)=>a-b).map(n => { const e = index.entries.get(entryKey(f,n)); return `<span title="${esc(e.path)} (${fmtBytes(e.size)})">${n}</span>`; }).join(', ') : '<i>none</i>';
+    html.push(`<ul><li>CSS: n = ${li('css')}</li><li>General: n = ${li('general')}</li></ul>`);
+    $('dsStatus').innerHTML = html.join('');
+  }
+  fillNSelect();
+}
+function fillNSelect() {
+  const sel = $('fN'); const fam = state.family; const cur = sel.value;
+  const ns = [...index.entries.values()].filter(e => e.family === fam).map(e => e.n).sort((a,b)=>a-b);
+  sel.innerHTML = ns.length ? ns.map(n => `<option value="${n}">${n}</option>`).join('') : '<option value="">(open the dataset first)</option>';
+  if (ns.includes(+cur)) sel.value = cur;
+  updateLookoutHint();
+}
+
+// --- source: http(s) — auto-locate relative to the page
+async function probeHttp() {
+  const cands = [];
+  for (let n = 4; n <= 20; n++) {
+    const variants = base => [`${base}_lc_class_included.gz`, `${base}_lc_class_included.txt`, `${base}.gz`, `${base}.txt`];
+    cands.push({ family: 'css', n, paths: [...variants(`graphs${n}_bipartite_dataset/graphs${n}CSS`), ...variants(`graphs${n}CSS`)] });
+    cands.push({ family: 'general', n, paths: [...variants(`graphs${n}_dataset/graphs${n}LDPC`), ...variants(`graphs${n}LDPC`)] });
+  }
+  await Promise.all(cands.map(async c => {
+    for (const p of c.paths) {
+      try {
+        const r = await fetch(p, { method: 'HEAD' });
+        if (!r.ok) continue;
+        const size = +(r.headers.get('content-length') || 0);
+        addEntry({ family: c.family, n: c.n, name: p.split('/').pop(), path: p, size, hasLc: /_lc_class_included\./i.test(p), isGz: /\.gz$/i.test(p),
+          open: async () => { const g = await fetch(p); if (!g.ok || !g.body) throw new Error('cannot fetch ' + p); return { size, stream: async () => g.body }; } });
+        return;
+      } catch (e) { /* not there */ }
+    }
+  }));
+  index.label = 'served from ' + location.origin;
+}
+
+// --- source: File System Access API directory handle (Chrome / Edge)
+async function indexDirHandle(dir, prefix = '', depth = 0) {
+  for await (const [name, h] of dir.entries()) {
+    if (h.kind === 'file') {
+      if (classifyName(name)) {
+        const f = await h.getFile();
+        addEntry(fileEntry(f, prefix + name));
+      }
+    } else if (depth < 3 && !name.startsWith('.')) await indexDirHandle(h, prefix + name + '/', depth + 1);
+  }
+}
+// --- source: FileList (webkitdirectory input)
+function indexFileList(files) {
+  for (const f of files) if (classifyName(f.name)) addEntry(fileEntry(f, f.webkitRelativePath || f.name));
+}
+// --- source: drag & drop entries
+function readAllEntries(reader) {
+  return new Promise((res, rej) => { const out = []; (function more() { reader.readEntries(es => { if (!es.length) res(out); else { out.push(...es); more(); } }, rej); })(); });
+}
+async function indexDropEntry(entry, depth = 0) {
+  if (entry.isFile) {
+    if (classifyName(entry.name) || depth === 0) {
+      const f = await new Promise((res, rej) => entry.file(res, rej));
+      const e = fileEntry(f, entry.fullPath.replace(/^\//, ''));
+      if (!e.family) { try { await sniffEntry(e); } catch (err) { throw new Error(`${f.name}: ${err.message}`); } }
+      addEntry(e);
+    }
+  } else if (entry.isDirectory && depth < 4) {
+    const es = await readAllEntries(entry.createReader());
+    for (const c of es) await indexDropEntry(c, depth + 1);
+  }
+}
+
+/* ===================================================== lookout hints */
+// The lookout files list, per (d, k, degeneracy), the total count and — only for the codes with the
+// minimum density D = max(row, col) — a breakdown by (row, col). So with a weight filter the table
+// gives an exact answer when the filter cannot be met by any denser code (max(r, c) <= D), a lower
+// bound otherwise, and a proof of "zero" only when max(r, c) < D or nothing listed fits at max(r, c) = D.
+function lookoutExpected(family, n, f) {
+  const tab = (LOOKOUT[family] || {})[String(n)];
+  if (!tab) return null;
+  const cmp = (mode, want, have) => want == null || (mode === 'eq' ? have === want : have <= want);
+  const res = { kind: 'zero', count: 0, sparse: [] };   // kind: zero | exact | atLeast | unknown
+  let anyUnknown = false, anyGroup = false;
+  const groups = [];
+  for (const e of tab) {
+    if (f.k != null && e.k !== f.k) continue;
+    if (f.d != null && e.d !== f.d) continue;
+    if (f.deg !== 1 && e.nondeg) groups.push({ e, deg: 0, g: e.nondeg });
+    if (f.deg !== 0 && e.deg) groups.push({ e, deg: 1, g: e.deg });
+  }
+  for (const { e, deg, g } of groups) {
+    anyGroup = true;
+    if (f.row == null && f.col == null) { res.count += g.count; continue; }
+    const D = g.ldpc.length ? Math.min(...g.ldpc.map(x => Math.max(x[0], x[1]))) : null;
+    const listed = g.ldpc.filter(x => cmp(f.rowMode, f.row, x[0]) && cmp(f.colMode, f.col, x[1])).reduce((a, x) => a + x[2], 0);
+    if (D != null) res.sparse.push(`[[${n},${e.k},${e.d}]] ${deg ? 'deg.' : 'non-deg.'}: ${g.ldpc.map(x => x[0] + '/' + x[1]).join(', ')}`);
+    if (D == null) { anyUnknown = true; continue; }
+    if (f.row != null && f.col != null) {
+      const M = Math.max(f.row, f.col);
+      if (M < D) continue;                                  // provably nothing in this group
+      if (M === D) { res.count += listed; continue; }       // exact
+    }
+    res.count += listed;                                    // denser codes may exist: lower bound
+    anyUnknown = true;
+  }
+  if (!anyGroup) return res;                                // zero: no (d, k, deg) group at all
+  if (!anyUnknown) res.kind = res.count > 0 ? 'exact' : 'zero';
+  else res.kind = res.count > 0 ? 'atLeast' : 'unknown';
+  return res;
+}
+function readFilters() {
+  const num = id => { const v = $(id).value.trim(); return v === '' ? null : +v; };
+  const degV = $('fDeg').value;
+  return { k: num('fK'), d: num('fD'), deg: degV === 'any' ? null : +degV,
+    row: num('fRow'), rowMode: $('fRowMode').value, col: num('fCol'), colMode: $('fColMode').value };
+}
+function describeFilters(n, f) {
+  return `n = ${n}` + (f.k != null ? `, k = ${f.k}` : '') + (f.d != null ? `, d = ${f.d}` : '') + (f.deg == null ? '' : f.deg ? ', degenerate' : ', non-degenerate')
+    + (f.row != null ? `, row ${f.rowMode === 'eq' ? '=' : '≤'} ${f.row}` : '') + (f.col != null ? `, col ${f.colMode === 'eq' ? '=' : '≤'} ${f.col}` : '');
+}
+// number of LC-equivalence classes of graph states among the codes matching (n, k, d, degeneracy);
+// null if unknown for this n. With row/column limits the count is only an upper bound.
+function lcClassCount(family, n, f) {
+  const tab = (LC_CLASSES[family] || {})[String(n)];
+  if (!tab) return null;
+  let c = 0;
+  for (const [k, d, deg, classes] of tab) {
+    if (f.k != null && k !== f.k) continue;
+    if (f.d != null && d !== f.d) continue;
+    if (f.deg != null && deg !== f.deg) continue;
+    c += classes;
+  }
+  return c;
+}
+function lcClassText(family, n, f) {
+  const c = lcClassCount(family, n, f);
+  if (c == null) return '';
+  const bound = (f.row != null || f.col != null) ? 'at most ' : '';
+  return ` <span title="Local-Clifford equivalence classes of the graph states (computed with gsc); the _lc_class_included files carry the class label of every record">Graph states: <b>${bound}${fmtInt(c)}</b> LC class${c === 1 && !bound ? '' : 'es'}.</span>`;
+}
+function lookoutText(exp, n, f) {
+  const sparse = exp.sparse.length ? `<div class="note" style="margin-top:4px">Sparsest codes (row/col weight) in this class: ${esc(exp.sparse.join(' · '))}</div>` : '';
+  const what = esc(describeFilters(n, f));
+  const lc = exp.kind === 'zero' ? '' : lcClassText(state.family, n, f);
+  if (exp.kind === 'zero') return { kind: 'warn', html: `Full dataset: <b>no</b> code matches ${what}.` + sparse };
+  if (exp.kind === 'exact') return { kind: 'info', html: `Full dataset: <b>${fmtInt(exp.count)}</b> codes match ${what}.` + lc + sparse };
+  if (exp.kind === 'atLeast') return { kind: 'info', html: `Full dataset: <b>at least ${fmtInt(exp.count)}</b> codes match ${what} (denser codes are not itemised in the table; a scan gives the exact number).` + lc + sparse };
+  return { kind: 'info', html: `Full dataset: cannot tell whether any code matches ${what} — only the sparsest codes are itemised. A scan will tell.` + lc + sparse };
+}
+function updateLookoutHint() {
+  const el = $('lookoutMsg');
+  if (state.mode !== 'params') { el.innerHTML = ''; return; }
+  const n = +$('fN').value; if (!n) { el.innerHTML = ''; return; }
+  const f = readFilters();
+  const exp = lookoutExpected(state.family, n, f);
+  if (exp == null) { el.innerHTML = `<div class="note">No lookout table for ${state.family === 'css' ? 'CSS' : 'general'} n = ${n}; the file will simply be scanned.${lcClassText(state.family, n, f)}</div>`; return; }
+  const t = lookoutText(exp, n, f); setMsg(el, t.kind, t.html);
+}
+
+/* ======================================================= scan session */
+const CACHE_CAP = 200000;
+class Session {
+  constructor(entry, test, desc) {
+    this.entry = entry; this.test = test; this.desc = desc;
+    this.matches = []; this.pos = -1; this.lineNo = 0; this.matchCount = 0;
+    this.eof = false; this.busy = false; this.stopped = false; this.lr = null;
+    this.t0 = 0; this.familyWarned = false;
+  }
+  async open() { this.src = await this.entry.open(); this.lr = await openLines(this.src); this.t0 = performance.now(); }
+  // scan forward until a line passes `test` (and `accept`), or EOF / stop. Returns match or null.
+  async scan({ accept = null, countOnly = false, onProgress = null } = {}) {
+    if (this.eof || this.stopped) return null;
+    this.busy = true;
+    let lastUi = 0, found = null;
+    try {
+      for (;;) {
+        const line = await this.lr.next();
+        if (line === null) { this.eof = true; break; }
+        if (this.stopped) break;
+        this.lineNo++;
+        if ((this.lineNo & 4095) === 0 && onProgress) {          // refresh the progress bar ~10x per second and let the page paint
+          const now = performance.now();
+          if (now - lastUi > 100) { lastUi = now; onProgress(this); await new Promise(r => setTimeout(r, 0)); }
+        }
+        if (line.length < 8) continue;
+        if (!this.familyWarned && this.lineNo === 1) this.checkFamily(line);
+        const q = quickFields(line);
+        if (!q) continue;
+        if (!this.test(q)) continue;
+        if (accept && !accept(q)) continue;
+        this.matchCount++;
+        const m = { lineNo: this.lineNo, line, q };
+        if (this.matches.length < CACHE_CAP) this.matches.push(m); else this.cacheFull = true;
+        if (!countOnly) { found = m; break; }
+      }
+    } finally { this.busy = false; }
+    if (onProgress) onProgress(this);
+    return found;
+  }
+  checkFamily(line) {
+    this.familyWarned = true;
+    let braces = 0; for (let i = 0; i < line.length; i++) if (line.charCodeAt(i) === 123) braces++;
+    const fam = braces >= 5 ? 'css' : 'general';
+    if (fam !== this.entry.family) setMsg($('searchMsg'), 'warn', `Heads-up: the records in <code>${esc(this.entry.name)}</code> look like <b>${fam}</b> codes, not ${this.entry.family}.`);
+  }
+  async stop() { this.stopped = true; if (this.lr) await this.lr.cancel(); }
+  progress() {
+    const b = this.lr ? this.lr.bytesRead() : 0, size = this.src ? this.src.size : 0;
+    const el = (performance.now() - this.t0) / 1000;
+    const frac = size ? Math.min(1, b / size) : null;
+    return { bytes: b, size, frac, elapsed: el, rate: el > 0 ? this.lineNo / el : 0, eta: frac && frac > 0 ? el * (1 - frac) / frac : Infinity };
+  }
+}
+
+/* =================================================== graph layouts */
+function circularLayout(n) { return Array.from({length:n}, (_, i) => { const a = -Math.PI/2 + 2*Math.PI*i/n; return [0.5 + 0.42*Math.cos(a), 0.5 + 0.42*Math.sin(a)]; }); }
+function springLayout(g) {
+  const n = g.n; if (n === 1) return [[0.5, 0.5]];
+  const pos = circularLayout(n).map(p => [p[0]*0.6+0.2, p[1]*0.6+0.2]);
+  const k = 0.75 * Math.sqrt(1 / n), iters = 600;
+  let temp = 0.12;
+  const adjSet = g.edges.map(([a,b]) => a*64+b);
+  for (let it = 0; it < iters; it++) {
+    const disp = pos.map(() => [0,0]);
+    for (let i = 0; i < n; i++) for (let j = i+1; j < n; j++) {
+      let dx = pos[i][0]-pos[j][0], dy = pos[i][1]-pos[j][1];
+      let d2 = dx*dx + dy*dy; if (d2 < 1e-6) { dx = 1e-3*(i+1); dy = 1e-3*(j+1); d2 = dx*dx+dy*dy; }
+      const d = Math.sqrt(d2);
+      const f = k*k / d;                                   // repulsion
+      disp[i][0] += dx/d*f; disp[i][1] += dy/d*f; disp[j][0] -= dx/d*f; disp[j][1] -= dy/d*f;
+    }
+    for (const [a,b] of g.edges) {
+      let dx = pos[a][0]-pos[b][0], dy = pos[a][1]-pos[b][1];
+      const d = Math.sqrt(dx*dx+dy*dy) || 1e-3;
+      const f = d*d / k;                                   // attraction
+      disp[a][0] -= dx/d*f; disp[a][1] -= dy/d*f; disp[b][0] += dx/d*f; disp[b][1] += dy/d*f;
+    }
+    // gentle gravity to the centre keeps disconnected pieces on-canvas
+    for (let i = 0; i < n; i++) { disp[i][0] -= (pos[i][0]-0.5)*0.05; disp[i][1] -= (pos[i][1]-0.5)*0.05; }
+    for (let i = 0; i < n; i++) {
+      const dl = Math.sqrt(disp[i][0]**2 + disp[i][1]**2) || 1e-9;
+      const step = Math.min(dl, temp);
+      pos[i][0] += disp[i][0]/dl*step; pos[i][1] += disp[i][1]/dl*step;
+    }
+    temp *= 0.985;
+  }
+  return fitUnit(pos);
+}
+function fitUnit(pos, margin = 0.09) {
+  let minx = Infinity, maxx = -Infinity, miny = Infinity, maxy = -Infinity;
+  for (const [x,y] of pos) { minx = Math.min(minx,x); maxx = Math.max(maxx,x); miny = Math.min(miny,y); maxy = Math.max(maxy,y); }
+  const w = Math.max(maxx-minx, 1e-6), h = Math.max(maxy-miny, 1e-6), s = (1-2*margin) / Math.max(w, h);
+  const ox = margin + ((1-2*margin) - w*s)/2, oy = margin + ((1-2*margin) - h*s)/2;
+  return pos.map(([x,y]) => [ox + (x-minx)*s, oy + (y-miny)*s]);
+}
+function twoColoring(g) {
+  const col = new Array(g.n).fill(-1);
+  for (let s = 0; s < g.n; s++) {
+    if (col[s] >= 0) continue; col[s] = 0; const st = [s];
+    while (st.length) { const u = st.pop(); for (const v of g.adj[u]) { if (col[v] < 0) { col[v] = 1-col[u]; st.push(v); } else if (col[v] === col[u]) return null; } }
+  }
+  return col;
+}
+function bipartiteLayout(g) {
+  const col = twoColoring(g); if (!col) return null;
+  const L = [], R = [];
+  for (let i = 0; i < g.n; i++) (col[i] === 0 ? L : R).push(i);
+  const pos = new Array(g.n);
+  const place = (arr, x) => arr.forEach((v, i) => pos[v] = [x, arr.length === 1 ? 0.5 : 0.1 + 0.8*i/(arr.length-1)]);
+  place(L, 0.22); place(R, 0.78);
+  return pos;
+}
+function computeLayout(g, mode) {
+  if (mode === 'circle') return circularLayout(g.n);
+  if (mode === 'bipartite') return bipartiteLayout(g) || springLayout(g);
+  return springLayout(g);
+}
+
+/* ======================================================== rendering */
+const SVGNS = 'http://www.w3.org/2000/svg';
+const PANEL = 250, R = 13;
+function svgEl(tag, attrs) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+function makePanel(card, title, filledBits, pauli) {
+  const g = card.rec.graph;
+  const wrap = document.createElement('div'); wrap.className = 'panel';
+  const head = document.createElement('div'); head.className = 'ptitle';
+  head.innerHTML = `<span><b>${esc(title)}</b>${pauli ? `<span class="pauli">${esc(pauli)}</span>` : ''}</span>`;
+  const dl = document.createElement('button'); dl.textContent = 'SVG'; dl.title = 'Download this drawing as SVG';
+  head.appendChild(dl); wrap.appendChild(head);
+  const svg = svgEl('svg', { class: 'g', width: PANEL, height: PANEL, viewBox: `0 0 ${PANEL} ${PANEL}` });
+  svg.appendChild(svgEl('rect', { x: 0, y: 0, width: PANEL, height: PANEL, fill: '#fff' }));
+  const eg = svgEl('g', {}), ng = svgEl('g', {});
+  svg.appendChild(eg); svg.appendChild(ng);
+  const lines = g.edges.map(([a,b]) => { const l = svgEl('line', {}); l.dataset.a = a; l.dataset.b = b; eg.appendChild(l); return l; });
+  const nodes = [];
+  for (let i = 0; i < g.n; i++) {
+    const on = filledBits ? filledBits[i] : 0;
+    const c = svgEl('circle', { r: R, fill: on ? '#111' : '#fff', stroke: on ? '#111' : '#8a8f98' });
+    const t = svgEl('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: on ? '#fff' : '#111' });
+    t.textContent = String(i + 1);
+    ng.appendChild(c); ng.appendChild(t); nodes.push([c, t]);
+    attachDrag(card, c, i);
+  }
+  wrap.appendChild(svg);
+  const panel = { svg, lines, nodes };
+  card.panels.push(panel);
+  dl.onclick = () => downloadSvg(svg, `${card.rec.g6.replace(/[^A-Za-z0-9]/g, '_')}_${title.replace(/\s+/g, '_')}.svg`);
+  return wrap;
+}
+function positionPanels(card) {
+  const P = card.pos;
+  for (const p of card.panels) {
+    for (const l of p.lines) { const a = P[l.dataset.a], b = P[l.dataset.b]; l.setAttribute('x1', a[0]*PANEL); l.setAttribute('y1', a[1]*PANEL); l.setAttribute('x2', b[0]*PANEL); l.setAttribute('y2', b[1]*PANEL); }
+    p.nodes.forEach(([c, t], i) => { c.setAttribute('cx', P[i][0]*PANEL); c.setAttribute('cy', P[i][1]*PANEL); t.setAttribute('x', P[i][0]*PANEL); t.setAttribute('y', P[i][1]*PANEL); });
+  }
+}
+function attachDrag(card, circle, i) {
+  circle.addEventListener('pointerdown', ev => {
+    ev.preventDefault(); circle.setPointerCapture(ev.pointerId);
+    const svg = circle.ownerSVGElement;
+    const move = e => {
+      const r = svg.getBoundingClientRect();
+      const x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+      card.pos[i] = [x, y]; positionPanels(card);
+    };
+    const up = () => { circle.removeEventListener('pointermove', move); circle.removeEventListener('pointerup', up); circle.removeEventListener('pointercancel', up); };
+    circle.addEventListener('pointermove', move); circle.addEventListener('pointerup', up); circle.addEventListener('pointercancel', up);
+  });
+}
+function downloadSvg(svg, name) {
+  const clone = svg.cloneNode(true);
+  clone.setAttribute('xmlns', SVGNS);
+  const style = document.createElementNS(SVGNS, 'style');
+  style.textContent = 'line{stroke:#555;stroke-width:1.6}circle{stroke-width:1.6}text{font:600 12px Helvetica,Arial,sans-serif}';
+  clone.insertBefore(style, clone.firstChild);
+  const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+function matrixTable(rows, n, labelPrefix, opts = {}) {
+  if (!rows.length) return '<div class="note">none</div>';
+  const th = ['<th></th>'];
+  for (let q = 1; q <= n; q++) th.push(`<th${q === 1 ? '' : ''}>X${sub(q)}</th>`);
+  for (let q = 1; q <= n; q++) th.push(`<th class="${q === 1 ? 'sep' : ''}">Z${sub(q)}</th>`);
+  th.push('<th>Pauli</th><th>wt</th>');
+  const body = rows.map((v, i) => {
+    const nb = opts.nbit ? Array.from({length:n}, (_, q) => bit(v, n-1-q)) : null;
+    const { x, z } = opts.nbit === 'z' ? { x: new Array(n).fill(0), z: nb } : opts.nbit ? { x: nb, z: new Array(n).fill(0) } : splitXZ(v, n);
+    const cells = [`<td class="lbl">${labelPrefix}${sub(i+1)}</td>`];
+    x.forEach(b => cells.push(`<td class="${b ? 'one' : 'zero'}">${b ? 1 : '·'}</td>`));
+    z.forEach((b, q) => cells.push(`<td class="${b ? 'one' : 'zero'}${q === 0 ? ' sep' : ''}">${b ? 1 : '·'}</td>`));
+    const ps = opts.nbit === 'z' ? zString(v, n) : opts.nbit ? xString(v, n) : pauliString(v, n);
+    const w = opts.nbit ? nb.reduce((a,b)=>a+b,0) : pauliWeight(v, n);
+    cells.push(`<td class="pauli">${ps}</td><td>${w}</td>`);
+    return `<tr>${cells.join('')}</tr>`;
+  }).join('');
+  return `<div style="overflow-x:auto"><table class="mat"><thead><tr>${th.join('')}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+function checkMatrixWeights(stabs, n) {
+  let row = 0; const colw = new Array(n).fill(0);
+  for (const v of stabs) { const { x, z } = splitXZ(v, n); let w = 0; for (let q = 0; q < n; q++) if (x[q] || z[q]) { w++; colw[q]++; } row = Math.max(row, w); }
+  return { row, col: Math.max(...colw, 0) };
+}
+
+function renderCard(match, session) {
+  let rec;
+  try { rec = parseRecord(match.line.trim()); }
+  catch (e) { $('result').innerHTML = `<div class="msg err">Line ${fmtInt(match.lineNo)} could not be parsed: ${esc(e.message)}<br><code>${esc(match.line.slice(0, 300))}</code></div>`; return; }
+  const n = rec.n, card = { rec, panels: [], pos: null };
+  state.card = card;
+  let mode = state.layoutMode;
+  if (mode === 'bipartite' && !twoColoring(rec.graph)) mode = 'spring';
+  card.pos = computeLayout(rec.graph, mode);
+
+  const prevM = session && session.pos > 0 ? session.matches[session.pos - 1] : null;
+  const sameAsPrev = prevM && prevM.q.g6 === rec.g6;
+  const sameClassAsPrev = !sameAsPrev && prevM && rec.lcClass != null && prevM.q.lc === rec.lcClass;
+  let extraLabel = rec.pairs != null ? `<span title="trailing field of the record: number of correctable pairs">correctable pairs <b>${esc(rec.pairs)}</b></span>` : '';
+  if (rec.lcClass != null) extraLabel += ` <span class="badge lc" title="Local-Clifford equivalence class of the graph state (up to relabeling), 1-based, numbered by first appearance in this file. Same label = LC-equivalent graph states.">LC class <b>${esc(rec.lcClass)}</b></span>`;
+  else extraLabel += ` <span class="badge" style="color:var(--muted)" title="Open a graphsN…_lc_class_included file to see the local-Clifford equivalence class of the graph state">LC class: not in this file</span>`;
+  rec.extra.slice(2).forEach((v, i) => { extraLabel += ` <span title="trailing field ${i+3} of the record">extra: <b>${esc(v)}</b></span>`; });
+  const cw = checkMatrixWeights(rec.stabs, n);
+
+  const el = document.createElement('div'); el.className = 'card';
+  el.innerHTML = `
+    <h2>[[${n}, ${rec.k}, ${rec.d}]] <span style="font-weight:400;font-size:14px;color:var(--muted)">${rec.family === 'css' ? 'CSS code' : 'general stabilizer code'}</span></h2>
+    <div class="meta">
+      <span class="badge ${rec.deg ? 'deg' : 'nondeg'}">${rec.deg ? 'degenerate' : 'non-degenerate'}</span>
+      <span>row weight <b>${rec.row}</b></span><span>column weight <b>${rec.col}</b></span>
+      <span>line <b>${fmtInt(match.lineNo)}</b></span>
+      <span>graph6 <code>${esc(rec.g6)}</code></span>
+      <span>${rec.graph.edges.length} edges</span>
+      ${extraLabel}
+      ${sameAsPrev ? '<span class="badge same">same graph as previous match</span>' : ''}
+      ${sameClassAsPrev ? '<span class="badge same">same LC class as previous match</span>' : ''}
+      <button id="btnCopyLine" style="padding:2px 8px;font-size:12px">copy record line</button>
+    </div>
+    <div class="toolbar">
+      <span>Layout</span>
+      <div class="seg" id="layoutSeg">
+        <button data-v="spring" class="${mode==='spring'?'on':''}">Spring</button>
+        <button data-v="circle" class="${mode==='circle'?'on':''}">Circle</button>
+        <button data-v="bipartite" class="${mode==='bipartite'?'on':''}" ${twoColoring(rec.graph) ? '' : 'disabled title="graph is not bipartite"'}>Bipartite</button>
+      </div>
+      <span>· drag vertices to rearrange (all drawings move together)</span>
+    </div>
+    <div class="graphs" id="graphs"></div>
+    <div class="twocol" id="mats"></div>
+    <details><summary>Graph edges &amp; adjacency</summary><pre>${esc(edgeText(rec.graph))}</pre></details>
+    <details><summary>Raw record line</summary><pre>${esc(rec.raw)}</pre></details>`;
+  const graphs = el.querySelector('#graphs');
+  graphs.appendChild(makePanel(card, 'Graph', null, null));
+  const css = rec.family === 'css';   // CSS field 2 is a 2n-bit symplectic logical X (Hadamarded with the check matrix); general field 2 is the logical X as an n-bit Z-string codeword
+  rec.logicalX.forEach((v, i) => {
+    let bits, ps;
+    if (css) { const { x, z } = splitXZ(v, n); bits = x.map((b, q) => b | z[q]); ps = pauliString(v, n); }
+    else { bits = Array.from({length:n}, (_, q) => bit(v, n-1-q)); ps = zString(v, n); }
+    graphs.appendChild(makePanel(card, `Logical X${sub(i+1)}`, bits, ps));
+  });
+  const mats = el.querySelector('#mats');
+  const sec = (title, html) => `<div><h3>${title}</h3>${html}</div>`;
+  let m = '';
+  if (rec.family === 'css') {
+    m += sec(`X-type stabilizer generators (${rec.stabX.length})`, matrixTable(rec.stabX, n, 'S<sup>X</sup>'));
+    m += sec(`Z-type stabilizer generators (${rec.stabZ.length})`, matrixTable(rec.stabZ, n, 'S<sup>Z</sup>'));
+  } else {
+    m += sec(`Stabilizer generators (${rec.stabs.length})`, matrixTable(rec.stabs, n, 'S'));
+  }
+  if (css) {
+    m += sec(`Logical X operators (${rec.logicalX.length})`, matrixTable(rec.logicalX, n, 'X̄'));
+    m += sec(`Logical Z operators (${rec.logicalZ.length})`, matrixTable(rec.logicalZ, n, 'Z̄'));
+  } else {
+    m += sec(`Logical X operators (${rec.logicalX.length}) — Z products`, matrixTable(rec.logicalX, n, 'X̄', { nbit: 'z' }));
+    m += sec(`Logical Z operators (${rec.logicalZ.length})`, matrixTable(rec.logicalZ, n, 'Z̄'));
+  }
+  m += `<div class="kv" style="flex-basis:100%;color:var(--muted)">Check matrix (all generators): max Pauli row weight <b>${cw.row}</b>, max column weight <b>${cw.col}</b> — recorded ${rec.row} / ${rec.col}.</div>`;
+  mats.innerHTML = m;
+  positionPanels(card);
+  el.querySelector('#layoutSeg').addEventListener('click', ev => {
+    const b = ev.target.closest('button'); if (!b || b.disabled) return;
+    state.layoutMode = b.dataset.v;
+    el.querySelectorAll('#layoutSeg button').forEach(x => x.classList.toggle('on', x === b));
+    card.pos = computeLayout(rec.graph, b.dataset.v); positionPanels(card);
+  });
+  el.querySelector('#btnCopyLine').onclick = ev => { navigator.clipboard?.writeText(rec.raw).then(() => { ev.target.textContent = 'copied'; setTimeout(() => ev.target.textContent = 'copy record line', 1200); }); };
+  $('result').innerHTML = ''; $('result').appendChild(el);
+}
+function edgeText(g) {
+  const e = g.edges.map(([a,b]) => `${a+1}–${b+1}`).join(', ');
+  const adj = g.adj.map((l, i) => `${i+1}: ${l.map(v => v+1).join(' ')}  (degree ${l.length})`).join('\n');
+  return `Edges (${g.edges.length}): ${e}\n\nAdjacency:\n${adj}`;
+}
+
+/* ============================================================== UI */
+const state = { family: 'css', mode: 'params', layoutMode: 'spring', session: null, card: null };
+
+function seg(id, onChange) {
+  $(id).addEventListener('click', ev => {
+    const b = ev.target.closest('button'); if (!b) return;
+    $(id).querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    onChange(b.dataset.v);
+  });
+}
+seg('familySeg', v => { state.family = v; familyNote(); fillNSelect(); if (state.mode === 'g6') syncNFromG6(); });
+seg('modeSeg', v => { state.mode = v; $('paramsBox').hidden = v !== 'params'; $('g6Box').hidden = v !== 'g6'; updateLookoutHint(); if (v === 'g6') syncNFromG6(); });
+function syncNFromG6() {
+  const g6 = $('fG6').value.trim(); const note = $('g6Note');
+  if (!g6) { note.textContent = 'n is read from the string; the file for that n is used.'; return; }
+  try {
+    const n = decodeG6(g6).n;
+    const opt = [...$('fN').options].find(o => +o.value === n);
+    if (opt) { $('fN').value = String(n); note.textContent = `n = ${n} from the string → ${state.family === 'css' ? 'CSS' : 'general'} file for n = ${n}.`; }
+    else note.textContent = `n = ${n} from the string, but no ${state.family === 'css' ? 'CSS' : 'general'} file for n = ${n} is open — only the bare graph can be drawn.`;
+  } catch (e) { note.textContent = 'Invalid graph6 string: ' + e.message; }
+}
+$('fG6').addEventListener('input', syncNFromG6);
+function familyNote() {
+  $('familyNote').textContent = state.family === 'css'
+    ? 'Files graphsN_bipartite_dataset/graphsNCSS.gz — records carry separate X-type and Z-type generators.'
+    : 'Files graphsN_dataset/graphsNLDPC.gz — records carry one symplectic generator set.';
+}
+familyNote();
+['fK','fD','fDeg','fN'].forEach(id => $(id).addEventListener('input', updateLookoutHint));
+['fRow','fCol'].forEach(id => $(id).addEventListener('input', updateLookoutHint));
+
+// dataset opening
+$('btnFolder').onclick = async () => {
+  setMsg($('dsMsg'), '', '');
+  if (window.showDirectoryPicker) {
+    try {
+      const dir = await window.showDirectoryPicker({ mode: 'read' });
+      index.entries.clear(); index.label = 'folder: ' + dir.name;
+      await indexDirHandle(dir); refreshDatasetStatus();
+      if (!index.entries.size) setMsg($('dsMsg'), 'warn', 'No files named like <code>graphs9LDPC.gz</code> / <code>graphs12CSS.gz</code> were found in that folder (searched 3 levels deep).');
+      return;
+    } catch (e) { if (e && e.name === 'AbortError') return; /* fall through to the classic picker */ }
+  }
+  $('inFolder').click();
+};
+$('inFolder').addEventListener('change', ev => {
+  const files = ev.target.files; if (!files.length) return;
+  index.entries.clear(); index.label = 'folder: ' + (files[0].webkitRelativePath.split('/')[0] || '(selected)');
+  indexFileList(files); refreshDatasetStatus();
+  if (!index.entries.size) setMsg($('dsMsg'), 'warn', 'No files named like <code>graphs9LDPC.gz</code> / <code>graphs12CSS.gz</code> were found in that folder.');
+  ev.target.value = '';
+});
+$('btnFile').onclick = () => $('inFile').click();
+$('inFile').addEventListener('change', async ev => {
+  const f = ev.target.files[0]; if (!f) return; ev.target.value = '';
+  await addSingleFile(f);
+});
+async function addSingleFile(f) {
+  setMsg($('dsMsg'), '', '');
+  const e = fileEntry(f);
+  try { if (!e.family) await sniffEntry(e); }
+  catch (err) { setMsg($('dsMsg'), 'err', `Could not read <code>${esc(f.name)}</code>: ${esc(err.message)}`); return; }
+  if (!index.label) index.label = 'individual files';
+  addEntry(e); refreshDatasetStatus();
+  const b = $('familySeg').querySelector(`button[data-v="${e.family}"]`); if (b) b.click();
+  $('fN').value = String(e.n);
+  setMsg($('dsMsg'), 'ok', `Added <code>${esc(f.name)}</code>: ${e.family === 'css' ? 'CSS' : 'general'} codes, n = ${e.n}, ${fmtBytes(f.size)}${e.isGz ? ' (gzip)' : ''}.`);
+}
+// drag & drop
+const drop = $('drop');
+['dragenter','dragover'].forEach(t => document.addEventListener(t, ev => { ev.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(t => document.addEventListener(t, ev => { ev.preventDefault(); drop.classList.remove('over'); }));
+document.addEventListener('drop', async ev => {
+  const items = [...(ev.dataTransfer.items || [])];
+  const entries = items.map(it => it.webkitGetAsEntry ? it.webkitGetAsEntry() : null).filter(Boolean);
+  setMsg($('dsMsg'), '', '');
+  try {
+    if (entries.length) {
+      if (entries.some(e => e.isDirectory)) { index.entries.clear(); index.label = 'folder: ' + entries.find(e => e.isDirectory).name; }
+      else if (!index.label) index.label = 'individual files';
+      for (const e of entries) await indexDropEntry(e);
+      refreshDatasetStatus();
+      if (!index.entries.size) setMsg($('dsMsg'), 'warn', 'Nothing usable was found in what you dropped.');
+    } else if (ev.dataTransfer.files.length) { for (const f of ev.dataTransfer.files) await addSingleFile(f); }
+  } catch (err) { setMsg($('dsMsg'), 'err', esc(err.message)); }
+});
+
+// progress
+function showProgress(session, title) {
+  $('progress').hidden = false; $('progTitle').textContent = title;
+  updateProgress(session);
+}
+function updateProgress(session) {
+  const p = session.progress();
+  $('pLine').textContent = fmtInt(session.lineNo);
+  const bar = $('progress').querySelector('.bar');
+  if (p.frac == null) { bar.classList.add('indet'); $('pPct').textContent = fmtBytes(p.bytes); }
+  else { bar.classList.remove('indet'); $('progFill').style.width = (p.frac*100).toFixed(2)+'%'; $('pPct').textContent = (p.frac*100).toFixed(1)+'%'; }
+  $('pRate').textContent = p.rate ? fmtInt(Math.round(p.rate)) : '–';
+  $('pElapsed').textContent = fmtDur(p.elapsed);
+  $('pEta').textContent = session.eof ? 'done' : fmtDur(p.eta);
+  $('pMatches').textContent = fmtInt(session.matchCount) + (session.cacheFull ? ' (cache full)' : '');
+  $('pHint').textContent = session.busy ? 'Scanning — keep this page open.' : (session.eof ? 'Reached end of file.' : (session.stopped ? 'Stopped.' : 'Paused at this line; Next resumes from here.'));
+}
+function setBusy(b) {
+  ['btnPrev','btnNext','btnNextGraph','btnPrevClass','btnNextClass','btnCount','btnSearch','btnFolder','btnFile'].forEach(id => $(id).disabled = b);
+  $('btnStop').hidden = !b;
+  if (!b) updateNav();
+}
+function updateNav() {
+  const s = state.session; if (!s) { $('nav').hidden = true; return; }
+  $('nav').hidden = false;
+  $('btnPrev').disabled = s.busy || s.pos <= 0;
+  $('btnNext').disabled = s.busy || (s.pos >= s.matches.length - 1 && (s.eof || s.stopped));
+  $('btnNextGraph').disabled = $('btnNext').disabled;
+  const curLc = s.pos >= 0 ? s.matches[s.pos].q.lc : null;
+  $('btnNextClass').disabled = $('btnNext').disabled || curLc == null;
+  $('btnPrevClass').disabled = s.busy || curLc == null || prevClassIndex(s) < 0;
+  $('btnNextClass').title = curLc == null && s.pos >= 0 ? 'This file carries no LC-class labels — open the graphsN…_lc_class_included file' : 'Jump to the next match whose graph state lies in a local-Clifford equivalence class not shown yet';
+  $('btnCount').disabled = s.busy || s.eof || s.stopped;
+  const lcSeen = s.pos >= 0 && curLc != null ? new Set(s.matches.map(m => m.q.lc)).size : 0;
+  $('navPos').textContent = s.pos >= 0 ? `match ${fmtInt(s.pos+1)} of ${fmtInt(s.matchCount)} found so far` + (lcSeen ? ` · ${fmtInt(lcSeen)} LC class${lcSeen === 1 ? '' : 'es'} met` : '') : '';
+  $('navTotal').textContent = s.eof ? `end of file reached · ${fmtInt(s.matchCount)} matches in ${fmtInt(s.lineNo)} lines` : (s.stopped ? `scan stopped at line ${fmtInt(s.lineNo)}` : `scanned ${fmtInt(s.lineNo)} lines`);
+}
+
+// search
+$('btnSearch').onclick = () => startSearch(false);
+async function startSearch(force) {
+  setMsg($('searchMsg'), '', '');
+  if (!hasStreamSupport()) { setMsg($('searchMsg'), 'err', 'This browser lacks streaming gzip support. Use a current Chrome, Edge, Firefox (≥113) or Safari (≥16.4).'); return; }
+  let entry, test, desc, family = state.family, n;
+  if (state.mode === 'g6') {
+    const g6 = $('fG6').value.trim();
+    if (!g6) { setMsg($('searchMsg'), 'err', 'Enter a graph6 string.'); return; }
+    try { n = decodeG6(g6).n; } catch (e) { setMsg($('searchMsg'), 'err', 'Invalid graph6 string: ' + esc(e.message)); return; }
+    entry = index.entries.get(entryKey(family, n));
+    if (entry) $('fN').value = String(n);
+    test = q => q.g6 === g6;
+    desc = `graph ${g6} (n = ${n}) in the ${family === 'css' ? 'CSS' : 'general'} dataset`;
+    if (!entry) {
+      // no dataset for this n: still draw the bare graph
+      setMsg($('searchMsg'), 'warn', `No ${family === 'css' ? 'CSS' : 'general'} dataset file for n = ${n} is open, so the code cannot be looked up — showing the bare graph only.`);
+      state.session = null; updateNav(); $('progress').hidden = true;
+      renderBareGraph(g6); return;
+    }
+  } else {
+    n = +$('fN').value;
+    entry = index.entries.get(entryKey(family, n));
+    if (!entry) { setMsg($('searchMsg'), 'err', 'Open the dataset folder (or the file for this n) first.'); return; }
+    const f = readFilters();
+    const cmp = (mode, want, have) => want == null || (mode === 'eq' ? have === want : have <= want);
+    test = q => (f.k == null || q.k === f.k) && (f.d == null || q.d === f.d) && (f.deg == null || q.deg === f.deg)
+      && cmp(f.rowMode, f.row, q.row) && cmp(f.colMode, f.col, q.col);
+    desc = describeFilters(n, f);
+    const exp = lookoutExpected(family, n, f);
+    if (exp && exp.kind === 'zero' && !force) {
+      if (state.session) { await state.session.stop(); state.session = null; updateNav(); $('progress').hidden = true; }
+      const sparse = exp.sparse.length ? `<div style="margin-top:6px">Sparsest codes (row/col weight) in this class: ${esc(exp.sparse.join(' · '))} — raise the row/column weight limits to find them.</div>` : '';
+      $('result').innerHTML = `<div class="msg warn"><b>No graph code matches</b> ${esc(desc)}: according to the lookout table the dataset contains no such code, so the file was not scanned. <button id="btnForce" style="padding:2px 8px;font-size:12px;margin-left:8px">Scan the file anyway</button>${sparse}</div>`;
+      $('btnForce').onclick = () => startSearch(true); return;
+    }
+  }
+  if (state.session) { await state.session.stop(); }
+  const session = new Session(entry, test, desc);
+  state.session = session;
+  $('result').innerHTML = `<div class="empty">Scanning <code>${esc(entry.name)}</code> (${fmtBytes(entry.size)}${entry.isGz ? ', gzip' : ''}) for ${esc(desc)}…</div>`;
+  setBusy(true);
+  try { await session.open(); }
+  catch (e) { setBusy(false); setMsg($('searchMsg'), 'err', 'Could not open the file: ' + esc(e.message) + (index.label.startsWith('folder') ? '<br>If the file lives in OneDrive / iCloud, make sure it is downloaded locally.' : '')); state.session = null; $('result').innerHTML = ''; return; }
+  showProgress(session, `Scanning ${entry.name} — ${desc}`);
+  await advance(session, null, false);
+}
+async function advance(session, accept, countOnly) {
+  setBusy(true);
+  let m = null;
+  try { m = await session.scan({ accept, countOnly, onProgress: updateProgress }); }
+  catch (e) { setMsg($('searchMsg'), 'err', 'Read error: ' + esc(e.message)); }
+  setBusy(false);
+  if (session !== state.session) return;
+  if (countOnly) { updateNav(); return; }
+  if (m) { session.pos = session.matches.length - 1; renderCard(m, session); }
+  else if (session.matches.length === 0 && (session.eof || session.stopped)) {
+    $('result').innerHTML = `<div class="msg ${session.eof ? 'warn' : 'info'}">${session.eof ? '<b>No graph code matches</b> ' + esc(session.desc) + ' — the whole file (' + fmtInt(session.lineNo) + ' lines) was scanned.' : 'Scan stopped after ' + fmtInt(session.lineNo) + ' lines without a match.'}</div>`;
+  } else if (session.eof) setMsg($('searchMsg'), 'info', `No further matches: end of file after ${fmtInt(session.lineNo)} lines.`);
+  updateNav();
+}
+function renderBareGraph(g6) {
+  const graph = decodeG6(g6);
+  const card = { rec: { g6, graph, n: graph.n }, panels: [], pos: computeLayout(graph, twoColoring(graph) ? 'bipartite' : 'spring') };
+  state.card = card;
+  const el = document.createElement('div'); el.className = 'card';
+  el.innerHTML = `<h2>Graph <code>${esc(g6)}</code> <span style="font-weight:400;font-size:14px;color:var(--muted)">n = ${graph.n}, ${graph.edges.length} edges, ${twoColoring(graph) ? 'bipartite' : 'not bipartite'}</span></h2><div class="graphs" id="graphs"></div><details open><summary>Graph edges &amp; adjacency</summary><pre>${esc(edgeText(graph))}</pre></details>`;
+  el.querySelector('#graphs').appendChild(makePanel(card, 'Graph', null, null));
+  positionPanels(card);
+  $('result').innerHTML = ''; $('result').appendChild(el);
+}
+$('btnPrev').onclick = () => { const s = state.session; if (!s || s.pos <= 0) return; s.pos--; renderCard(s.matches[s.pos], s); updateNav(); };
+$('btnNext').onclick = async () => {
+  const s = state.session; if (!s || s.busy) return;
+  if (s.pos < s.matches.length - 1) { s.pos++; renderCard(s.matches[s.pos], s); updateNav(); return; }
+  await advance(s, null, false);
+};
+$('btnNextGraph').onclick = async () => {
+  const s = state.session; if (!s || s.busy) return;
+  const cur = s.pos >= 0 ? s.matches[s.pos].q.g6 : null;
+  for (let i = s.pos + 1; i < s.matches.length; i++) if (s.matches[i].q.g6 !== cur) { s.pos = i; renderCard(s.matches[i], s); updateNav(); return; }
+  await advance(s, q => q.g6 !== cur, false);
+};
+// index of the first cached match of the nearest earlier LC class (≠ the current one), or -1
+function prevClassIndex(s) {
+  if (s.pos <= 0) return -1;
+  const cur = s.matches[s.pos].q.lc;
+  let i = s.pos - 1;
+  while (i >= 0 && s.matches[i].q.lc === cur) i--;
+  if (i < 0) return -1;
+  const target = s.matches[i].q.lc;
+  while (i > 0 && s.matches[i - 1].q.lc === target) i--;
+  return i;
+}
+$('btnPrevClass').onclick = () => {
+  const s = state.session; if (!s || s.busy) return;
+  const i = prevClassIndex(s); if (i < 0) return;
+  s.pos = i; renderCard(s.matches[i], s); updateNav();
+};
+$('btnNextClass').onclick = async () => {   // next match whose LC class has not been shown yet (cycles through the classes once each)
+  const s = state.session; if (!s || s.busy || s.pos < 0) return;
+  if (s.matches[s.pos].q.lc == null) return;
+  const seen = new Set(); for (let i = 0; i <= s.pos; i++) seen.add(s.matches[i].q.lc);
+  for (let i = s.pos + 1; i < s.matches.length; i++) if (!seen.has(s.matches[i].q.lc)) { s.pos = i; renderCard(s.matches[i], s); updateNav(); return; }
+  for (let i = s.pos + 1; i < s.matches.length; i++) seen.add(s.matches[i].q.lc);
+  s.classesSeen = seen;
+  await advance(s, q => !seen.has(q.lc), false);
+};
+$('btnCount').onclick = async () => { const s = state.session; if (!s || s.busy) return; await advance(s, null, true); };
+$('btnStop').onclick = async () => { const s = state.session; if (s) await s.stop(); };
+document.addEventListener('keydown', ev => {
+  if (ev.target.matches('input, select, textarea')) return;
+  if (ev.key === 'ArrowLeft') $('btnPrev').click(); else if (ev.key === 'ArrowRight') $('btnNext').click();
+});
+
+// startup
+(async () => {
+  if (!hasStreamSupport()) setMsg($('dsMsg'), 'err', 'This browser lacks streaming gzip support (DecompressionStream). Use a current Chrome, Edge, Firefox ≥ 113 or Safari ≥ 16.4.');
+  if (location.protocol.startsWith('http')) {
+    $('dsStatus').textContent = 'Looking for dataset files next to this page…';
+    await probeHttp(); refreshDatasetStatus();
+    if (index.entries.size) setMsg($('dsMsg'), 'ok', 'Dataset files were found automatically next to this page.');
+    else $('dsStatus').textContent = 'No dataset files found next to this page — open the folder manually.';
+  } else fillNSelect();
+})();
+</script>
+</body>
+</html>
